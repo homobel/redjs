@@ -160,7 +160,7 @@
 
 	S.toRgb = function() {
 		return 'rgb('+this.getColors().join(',')+')';
-	},
+	}
 
 	S.toHex = function(str) {
 		return '#'+this.getColors().map(function(c) {
