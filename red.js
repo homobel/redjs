@@ -1,3 +1,12 @@
+
+//	RedJS library v. 0.7				//
+//	28.11.2011						//
+//								//
+//	author: Archy Sharp 				//
+//	see http://redjs.ru for details		//
+
+'use strict';
+
 /* --------------------######-------------------- Default obj's extension --- */
 
 ;(function(A) {
@@ -160,7 +169,7 @@
 
 	S.toRgb = function() {
 		return 'rgb('+this.getColors().join(',')+')';
-	}
+	},
 
 	S.toHex = function(str) {
 		return '#'+this.getColors().map(function(c) {
@@ -184,184 +193,117 @@
 
 ;(function(win) {
 
-	var	_ = redjs = function(name, node) {return new _.fn.ini(name, node);},
+	var	_ = function(name, node) {return new RedJScollection(name, node);},
+		redjs = _,
+		ielt9 = '\v' == 'v',
+
 		hash = ('redjs'+Math.random()).replace('0.', ''),
-		ielt9 = ('\v' == 'v'),
+
 		doc = document,
-		win = window,
-		type = (function() {
-		
-		  	var types = ['undefined', 'boolean', 'number', 'string', 'func', 'node', 'nodelist', 'array', 'object', 'null', 'redjs'];
-		
-			function num(n) {this.val = n};
-			num.prototype.toString = function() {return types[this.val];}
-		
-			function getType(something) {
-				switch (typeof something) {
-					case 'undefined': return getType['undefined'];
-					case 'boolean': return getType['boolean'];
-					case 'number': return getType['number'];
-					case 'string': return getType['string'];
-					case 'function': if(something.call) {return getType['func'];};
-					case 'object': if(something instanceof _) {return  getType['redjs'];}
-							else if(something === null) {return getType['null'];}
-							else if(something instanceof Array) {return getType['array'];}
-							else if(something.nodeName && something.nodeType) {return getType['node'];}
-							else if(something.length) {return getType['nodelist'];}
-							else if(Object.prototype.toString.call(something) == '[object Object]') {return getType['object'];}
-				}
-				return -1;
+		win = window;
+
+// ########################---------- TYPE DETERMINANT
+
+	;(function() {
+
+		function Type(n) {this.val = n};
+
+		function getType(something) {
+			switch(typeof something) {
+				case 'undefined': return getType['undefined'];
+				case 'boolean': return getType['boolean'];
+				case 'number': return getType['number'];
+				case 'string': return getType['string'];
+				case 'function': if(something.call) {return getType['function'];};
+				case 'object': if(something instanceof RedJScollection) {return  getType['redjs'];}
+						else if(something === null) {return getType['null'];}
+						else if(something instanceof Array) {return getType['array'];}
+						else if(something.nodeName && something.nodeType !== undefined) {return getType['node'];}
+						else if(something.length !== undefined) {return getType['nodelist'];}
+						else if(Object.prototype.toString.call(something) == '[object Object]') {return getType['object'];}
+			};
+			return getType['unknown'];
+		};
+
+		Type.prototype = {
+			'toString': function() {return types[this.val];},
+			'is': function(typeStr) {
+				return types[this.val] == typeStr;
 			}
-		
-			types.forEach(function(c, i) {
-				this[c] = new num(i);
-				this[i] = c;
-			}, getType);
-		
-			return getType;
-		
-		})(),
-		events = ['click', 'dblclick', 'mousedown', 'mouseup', 'mouseover', 'mouseout', 'focus', 'blur', 'change', 'submit', 'dragstart', 'dragenter', 'dragover', 'drop', 'keypress'];
+		};
+
+	  	var	types = ['undefined', 'boolean', 'number', 'string', 'function', 'node', 'nodelist', 'array', 'object', 'null', 'redjs', 'unknown'];
+
+		types.forEach(function(c, i) {
+			this[c] = new Type(i);
+			this[i] = c;
+		}, getType);
+
+		_.type = getType;
+
+	})();
+
+	var type = _.type;
+
+// ########################---------- INNER FUNCTIONS
 
 	function toArraySimple(obj) {
 		var argType = type(obj);
-
-		if(argType == type.array) {return obj;}
-		else if(argType == type.nodelist) {
+		if(argType.is('array')) {return obj;}
+		else if(argType.is('nodelist')) {
 			var arr = [];
 			for(var i = 0; i < obj.length; i++) {
 				arr.push(obj[i]);
 			}
 			return arr;
 		}
-		else if(argType == type.object) {
+		else if(argType.is('object')) {
 			var arr = [];
 			for(var prop in obj) {
 				arr.push(obj[prop]);
 			}
 			return arr;
 		}
-		else if(argType == type.redjs) {return obj.ns;}
+		else if(argType.is('redjs')) {return obj.ns;}
+		else if(argType.is('undefined') || argType.is('null') || argType.is('unknown')) {
+			return [];
+		}
 		else {
 			return [obj];
 		}
-	}
-
-	function getNodes(name, node) { // return array with matched elements
-
-		if(name === undefined || name === '') {return [];}
-
-		var	inContext = !!node,
-			firstType = type(name),
-			secondType = type(node);
-
-		if(inContext) {
-			if(secondType == type.redjs) {node = node.ns;}
-			if(secondType == type.node) {node = [node];}
-		}
-
-		if(firstType == type.string) {
-			if(name.charAt(0) == '#') {
-				var nodes = _.id(name.substr(1, name.length));
-				if(nodes) {return [nodes];}
-			}
-			else if(name.charAt(0) == '.') {
-				if(inContext) {
-					var nodes = [], n;
-					for(var i = 0, l = node.length; i<l; i++) {
-						n = _.className(name.substr(1, name.length), node[i]);
-						if(n.length) {nodes = nodes.concat(toArraySimple(n));}
-					}
-					if(nodes.length) {return nodes;}
-				}
-				else {
-					var nodes = _.className(name.substr(1, name.length));
-					if(nodes.length) return toArraySimple(nodes);
-				}
-			}
-			else {				if(inContext) {
-					var nodes = [], n;
-					for(var i = 0, l = node.length; i<l; i++) {
-						n = _.tag(name, node[i]);
-						if(n.length) {nodes = nodes.concat(toArraySimple(n));}
-					}
-					if(nodes.length) {return nodes;}
-				}
-				else {
-					var nodes = _.tag(name, node);
-					if(nodes.length) return toArraySimple(nodes);
-				}
-			}
-		}
-		else if (firstType == type.redjs) {
-			return name.ns;
-		}
-		else {
-			return toArraySimple(name);
-		}
-
-		// if no elements matched
-
-		return [];
-	}
-
-	_.fn = _.prototype = {
-		'constructor': _,
-		'ini': function(name, context) {
-			this.ns = getNodes(name, context);
-			this.length = this.ns.length;
-		},
-		'include': function(node) {
-			for(var i = 0, l = arguments.length; i < l; i++) {
-				var nodes = getNodes(arguments[i]);
-	
-				nodes.forEach(function(c) {
-					if(!~this.ns.indexOf(c)) {
-						this.ns.push(c)
-					}
-				}, this);
-	
-				this.length = this.ns.length;
-			}
-			return this;
-		},
-		'exclude': function(node) {
-			for(var i = 0, l = arguments.length; i < l; i++) {
-				var nodes = getNodes(arguments[i]);
-	
-				this.ns = this.ns.filter(function(c) {
-					return !~nodes.indexOf(c);
-				}, this);
-	
-				this.length = this.ns.length;
-			}
-			return this;
-		}
-	}
-
-	_.fn.ini.prototype = _.fn;
-
-	_.multi = function() { // multiselection
-		var elements = [];
-		for(var i = 0, l = arguments.length; i<l; i++) {
-			elements = elements.concat(getNodes(arguments[i]));
-		}
-		return _(elements);
 	};
 
 // ########################---------- UTILITES
 
+// browser
+
+	_.browser = (function() {
+
+		var agent = {}, nav = navigator.userAgent.toLowerCase();
+
+		if(~nav.search(/firefox/)) {
+			agent.firefox = true;
+		}
+		else if(~nav.search(/msie/)) {
+			agent.msie = true;
+		}
+		else if(~nav.search(/opera/)) {
+			agent.opera = true;
+		}
+		else if(~nav.search(/chrome/)) {
+			agent.chrome = true;
+		}
+		else if(~nav.search(/safari/)) {
+			agent.safari = true;
+		}
+
+		return agent;
+
+	})();
+
 	_.ielt9 = ielt9;
 
-	_.type = type;
-
 	_.hash = hash;
-
-	_.props = function(obj){
-		var result = [];
-		for(var prop in obj) result.push(prop+' = '+obj[prop]);
-		console.log(result.join('\n'));
-	};
 
 	_.isEmptyObj = function(obj) {
 		for(var prop in obj) {return false;}
@@ -398,6 +340,8 @@
 		}
 	};
 
+// compatibility
+
 	_.easyModeOn = function() {
 		if(!window._) {window._ = _; return true;}
 		return false;
@@ -408,32 +352,50 @@
 		return false;
 	}
 
+// debuging
+
+	_.props = function(obj){
+		var result = [];
+		for(var prop in obj) result.push(prop+' = '+obj[prop]);
+		console.log(result.join('\n'));
+	};
+
+	_.time = function(func) {
+		var t = Date.now();
+		func();
+		return Date.now()-t;
+	};
+
 // ########################---------- DATA
 
 	;(function() {
 
-		var cacheNextVal = 0;
+		var	cacheNextVal = 0,
+			dataHash = 'data___'+hash;
 
 		function hookCache(node) {
-			node[hash] = cacheNextVal++;
-			_.cache[node[hash]] = {};
+			node[dataHash] = cacheNextVal++;
+			_.cache[node[dataHash]] = {};
 		}
 
 		function data(node, name, val) {
-			if(arguments.length == 2)  {
-				if(node[hash] !== undefined) {
-					return _.cache[node[hash]][name];
+			if(node) {
+				var key = node[dataHash];
+				if(arguments.length == 2)  {
+					if(key !== undefined) {
+						return _.cache[key][name];
+					}
+					return undefined;
 				}
-				return undefined;
-			}
-			else if(arguments.length == 3) {
-				if(!val) {
-					delete _.cache[node[hash]][name];
-				}
-				else {
-					if(node[hash] === undefined) {hookCache(node);}
-					_.cache[node[hash]][name] = val;
-					return val;
+				else if(arguments.length === 3) {
+					if(val === null) {
+						delete _.cache[key][name];
+					}
+					else {
+						if(key === undefined) {hookCache(node);}
+						_.cache[node[dataHash]][name] = val;
+						return val;
+					}
 				}
 			}
 		}
@@ -450,10 +412,10 @@
 		var	slice = Array.prototype.slice,
 			_FuncList = {
 				'exec': function(obj) {
-					var arg = arguments;
 					this.calls++;
+					var args = arguments;
 					this.list.forEach(function(c) {
-						c.apply(this, slice.call(arg, 1));
+						c.apply(this, slice.call(args, 1));
 					}, obj);
 					return this;
 				},
@@ -482,16 +444,18 @@
 					if(this.status == -1) {
 						this.status = 1;
 						this.context = context;
-						this.arg = slice.call(arguments);
+						this.arg = slice.call(arguments, 1);
 						this.successList.exec(context, this.arg);
+						this.anywayList.exec(context, this.arg);
 					}
 				},
 				'reject': function(context) {
 					if(this.status == -1) {
 						this.status = 0;
 						this.context = context;
-						this.arg = slice.call(arguments);
-						this.errorList.exec(context, slice.call(arguments));
+						this.arg = slice.call(arguments, 1);
+						this.errorList.exec(context, this.arg);
+						this.anywayList.exec(context, this.arg);
 					}
 				},
 				'success': function(func) {
@@ -501,6 +465,11 @@
 				},
 				'error': function(func) {
 					if(this.status == -1) this.errorList.add(func);
+					else if(this.status === 0) func.apply(this.context, this.arg);
+					return this;
+				},
+				'anyway': function(func) {
+					if(this.status == -1) this.anywayList.add(func);
 					else if(this.status === 0) func.apply(this.context, this.arg);
 					return this;
 				}
@@ -515,6 +484,7 @@
 			this.status = -1;
 			this.errorList = new FuncList();
 			this.successList = new FuncList();
+			this.anywayList = new FuncList();
 		}
 
 		FuncList.prototype = _FuncList;
@@ -585,10 +555,10 @@
 		};
 
 		function encodeData(obj) {
-			if(type(obj) == type.object) {
+			if(type(obj).is('object')) {
 				var data=[];
-				for(var i in obj) {
-					data.push(i+'='+encodeURIComponent(obj[i]));
+				for(var prop in obj) {
+					data.push(prop+'='+encodeURIComponent(obj[prop]));
 				}
 				data = data.join('&');
 				return data;
@@ -633,7 +603,7 @@
 				params.before();
 			}
 
-			if(type(params.timeout) == type.number) {
+			if(type(params.timeout).is('number')) {
 				timeout = setTimeout(function() {
 					clearInterval(resptimer);
 					d.reject(params.context, 'timeout');
@@ -645,13 +615,13 @@
 			var accept = _.aj.settings.contentType[params.accept];
 
 			if(params.type == 'post') {
-				xmlreq.open('POST', params.url, true);
-				xmlreq.setRequestHeader('Content-type', _.aj.settings.contentType.urlencoded);
+				xmlreq.open('post', params.url, true);
+				xmlreq.setRequestHeader('Content-Type', _.aj.settings.contentType.urlencoded);
 				xmlreq.setRequestHeader('Accept', accept);
 				xmlreq.send(encodeData(params.data));
 			}
 			else {
-				xmlreq.open('GET', params.url+'?'+encodeData(params.data), true);
+				xmlreq.open('get', params.url+'?'+encodeData(params.data), true);
 				xmlreq.setRequestHeader('Accept', accept);
 				xmlreq.send(null);
 			}
@@ -671,6 +641,36 @@
 				});
 			}
 			return script;
+		};
+
+	})();
+
+// ########################----------- COOKIES
+
+	;(function() { 
+
+		function getCookie(name) {
+			if(name && new RegExp('(?:^|;\\s*)' + name + '=([^;]*)').test(document.cookie)) {
+				return decodeURIComponent(RegExp.$1);
+			}
+		}
+
+		function setCookie(name, value, days, attrs) {
+			var cookie = [name+'='+encodeURIComponent(value || '')];
+			if(days) cookie.push('max-age='+days*86400);
+			if(attrs) for(var prop in attrs) {
+				cookie.push(prop+'='+attrs[prop]);
+			};
+			document.cookie = cookie.join('; ');
+		}
+
+		_.cookie = function(name, value, days, attr) {
+			if(arguments.length < 2) {
+				return getCookie(name);
+			}
+			else {
+				setCookie(name, value, days, attr);
+			}
 		};
 
 	})();
@@ -724,9 +724,9 @@
 			}
 		})();
 
-		var exeptions = {
+		var exceptions = {
 			'float': (function() {
-				if(_.ielt9) {
+				if(ielt9) {
 					return  function(node, val) {
 						if(val === undefined) {
 							return _.gstyle(node, 'styleFloat');
@@ -773,38 +773,45 @@
 					}
 				}
 			})()
-
-			// somth else
 		};
 
 		_.css = function(node, property, value) {
-			if(node) {
-				var propertyType = type(property);
-				if(propertyType == type.string) {
-					if(property in exeptions) {
-						return exeptions[property](node, value);
+			var propertyType = type(property);
+			if(propertyType.is('string')) {
+				if(property in exceptions) {
+					return exceptions[property](node, value);
+				}
+				else {
+					if(value === undefined) {
+						return _.gstyle(node, property);
 					}
 					else {
-						if(value === undefined) {
-							return _.gstyle(node, property)
-						}
-						else {
-							node.style[property] = value;
-						}
-					}
-				}
-				else if(propertyType == type.object) {
-					for(var prop in property) {
-						_.css(node, prop, property[prop]);
+						node.style[property] = value;
 					}
 				}
 			}
-		}
+			else if(propertyType.is('object')) {
+				for(var prop in property) {
+					_.css(node, prop, property[prop]);
+				}
+			}
+		};
 
 		_.height = function(node, padding, border, margin) {
-			var	height = (padding)?node.offsetHeight:_.gstyle(node, height).toInt(),
-				border = (border)?_.gstyle(node, 'borderTopWidth').toInt()+_.gstyle(node, 'borderBottomWidth').toInt():0,
-				margin = (margin)?_.gstyle(node, 'marginTop').toInt()+_.gstyle(node, 'marginBottom').toInt():0;
+
+			var height = (padding)?node.offsetHeight:_.gstyle(node, height).toInt();
+
+			if(border) {
+
+				var	borderTopWidth = _.css(node, 'borderTopWidth'),
+					borderBottomWidth = _.css(node, 'borderBottomWidth');
+
+				borderTopWidth = isNaN(borderTopWidth)?0:borderTopWidth.toInt();
+				borderBottomWidth = isNaN(borderBottomWidth)?0:borderBottomWidth.toInt();
+
+				height += borderTopWidth+borderBottomWidth;
+			}
+			margin = (margin)?_.gstyle(node, 'marginTop').toInt()+_.gstyle(node, 'marginBottom').toInt():0;
 			return height+margin+border;
 		};
 
@@ -827,11 +834,28 @@
 
 		function animationStatus(node, type, val) {
 			var animData = _.data(node, animationData) || _.data(node, animationData, {});
-			if(val !== undefined) {animData[type] = val;}
-			else {return animData[type];}
+			if(val !== undefined) {animData[type] = val; return;}
+			return animData[type];
 		}
 
-		_.animate = function(node, type, terminal, time, fnName, callback) {
+		_.animate = function(node, type, terminal, time, callback, fnName) {
+
+			function changeCss() {
+				var	now = Date.now() - start,
+					progress = now / time,
+					result = ((terminal - current)*easing(progress)+current).limit(current, terminal);
+
+				_.css(node, type, result+unit);
+
+				if(progress < 1) {
+					node[timerName] = setTimeout(changeCss, animationDelay);
+				}
+				else {
+					_.css(node, type, terminal);
+					animationStatus(node, type, '');
+					if(callback) {callback.call(node);}
+				}
+			}
 
 			var	currentAnimStatus = animationStatus(node, type),
 				currCss = _.css(node, type).toString(),
@@ -845,35 +869,19 @@
 
 				var	unit = currCss.match(/[a-z]+/),
 					easing = fn[fnName] || fn['swing'],
-					start = +new Date();
+					start = Date.now();
 
 				unit = (unit)?unit:'';
 				animationStatus(node, type, animStatus);
 
-				node[timerName] = setTimeout(function() {
-					var	now = (+new Date()) - start,
-						progress = now / time,
-						result = ((terminal - current)*easing(progress)+current).limit(current, terminal);
-
-					_.css(node, type, result+unit);
-
-					if (progress < 1) {
-						node[timerName] = setTimeout(arguments.callee, animationDelay);
-					}
-					else {
-						_.css(node, type, terminal);
-						animationStatus(node, type, '');
-						if(callback) {callback.call(node);}
-					}
-				}, animationDelay);
+				node[timerName] = setTimeout(changeCss, animationDelay);
 			}
 
-			return node;
 		};
 
 		_.hide = function(node, time, callback) {
 			if(time) {
-				_.animate(node, 'opacity', 0, time, '', function() {
+				_.animate(node, 'opacity', 0, time, function() {
 					node.style.display = 'none';
 					if(callback) callback();
 				});
@@ -894,7 +902,7 @@
 					_.css(node, 'opacity', 0);
 					node.style.display = 'block';
 				}
-				_.animate(node, 'opacity', 1, time, '', function() {
+				_.animate(node, 'opacity', 1, time, function() {
 					if(callback) callback();
 				});
 			}
@@ -911,7 +919,7 @@
 		var node = doc.createElement(tagName);
 		if(attr) {
 			for(var prop in attr) {
-				node[prop] = attr[prop];
+				node.setAttribute(prop, attr[prop]);
 			}
 		}
 		return node;
@@ -927,28 +935,27 @@
 
 	_.children = function(node, tagName) {
 		var c = node.childNodes, C = [];
-		if(tagName) {
-			tagName = tagName.toUpperCase();
-			for(var i=0; i<c.length; i++) {
-				if(c[i].nodeName == tagName && c[i].nodeType == 1) {C.push(c[i]);}
-			}
-			return C;
+		if(tagName) {tagName = tagName.toUpperCase();}
+		for(var i = 0; i < c.length; i++) {
+			if(tagName && c[i].nodeName != tagName) {continue;}
+			if(c[i].nodeType === 1) {C.push(c[i]);}
 		}
-		else {
-			for(var i=0; i<c.length; i++) {
-				if(c[i].nodeType == 1) {C.push(c[i]);}
-			}
-			return C;
-		}
-		return [];
+		return C;
 	};
 
 	_.firstChild = function(node, child) {
-		if(child) {
-			node.insertBefore(child, node.firstChild);
+		if(child === undefined) {
+			var child = node.firstChild;
+			while(child.nodeType !== 1 && child.nextSibling) {
+				child = child.nextSibling;
+			}
+			if(child.nodeType === 1) return child;
+			return undefined;
 		}
 		else {
-			return node.firstChild;
+			if(typeof child == 'string') child= _.create(child);
+			node.insertBefore(child, node.firstChild);
+			return child;
 		}
 	};
 
@@ -959,83 +966,125 @@
 // --------- CLASS MANIPULATION
 
 	_.addClass = function(node, name) {
-		if(node && name) {
-			if(!node.className.hasWord(name)) {
-				if(!node.className) {node.className = name;}
-				else {node.className += ' ' + name;}
-			}
+		if(!node.className.hasWord(name)) {
+			if(!node.className) {node.className = name;}
+			else {node.className += ' ' + name;}
 		}
 	};
 
 	_.delClass = function(node, name) {
-		if(node && name) {
-			node.className = node.className.replace(new RegExp('[ ]*\\b' + name +'\\b'), '');
-		}
+		node.className = node.className.replace(new RegExp('[ ]*\\b' + name +'\\b'), '');
+	};
+
+	_.hasClass = function(node, name) {
+		return node.className.hasWord(name);
 	};
 
 	_.toggleClass = function(node, name) {
-		if(node && name) {
-			if(node.className.hasWord(name)) {
-				_.delClass(node, name);
-				return false;
-			}
-			else {
-				_.addClass(node, name);
-				return true;
-			}
+		if(node.className.hasWord(name)) {
+			_.delClass(node, name);
+			return false;
+		}
+		else {
+			_.addClass(node, name);
+			return true;
 		}
 	};
 
 // --------- EVENTS
 
+	var eventNames = ['click', 'dblclick', 'mousedown', 'mouseup', 'mouseover', 'mouseout', 'focus', 'blur', 'change', 'submit', 'dragstart', 'dragenter', 'dragover', 'drop', 'keypress'];
+
+	if(_.browser.msie) {
+		eventNames.push('mouseenter', 'mouseleave');
+	}
+
 	;(function() {
 
-		var	addEvent = (function(){
-				if (win.addEventListener){
+		var	addEvent = (function() {
+				if(win.addEventListener){
 					return function(node, type, handler) {node.addEventListener(type, handler, false);};
 				} else {
 					return function(node, type, handler) {node.attachEvent('on'+type, handler);};
 				}
 			})(),
-			delEvent = (function(){
-				if (win.removeEventListener){
+			delEvent = (function() {
+				if(win.removeEventListener){
 					return function(node, type, handler) {node.removeEventListener(type, handler, false);};
 				} else {
 					return function(node, type, handler) {node.detachEvent('on'+type, handler);};
 				}
 			})(),
-			eventData = 'event___'+hash,
-			handlerName = 'handler___'+hash;
+			createEv = (function() {
+				if(doc.createEventObject) {
+					return function(e) {return e || document.createEventObject();};
+				} else if(document.createEvent) {
+					return function(e) {return e || document.createEvent('HTMLEvents');};
+				}
+			})(),
+			fireEv = (function() {
+				if(doc.createEventObject) {
+					return function(node, type, e) {node.fireEvent('on'+type, e);};
+				} else if(document.createEvent) {
+					return function(node, type, e) {e.initEvent(type, false, false); node.dispatchEvent(e);};
+				}
+			})(),
 
-		function addEventToDataObj(event, method, node) {
-			var ev = _.data(node, eventData) || _.data(node, eventData, {});
-			if(ev[event] === undefined) {ev[event] = [];}
-			ev[event].push(method);
+			eventHash = 'event___'+hash,
+			handlerHash = 'handler___'+hash,
+
+			_EventData = {
+				'set': function(event, func, once) {
+					if(this.events[event] === undefined) this.events[event] = [];
+					if(once) this.events[event].pushOnce(func);
+					else this.events[event].push(func);
+				},
+				'unset': function(eventType, func) {
+					var event = this.events[eventType];
+					if(event === undefined) return 0;
+					event.del(event.indexOf(func));
+					if(event.length === 0) {delete this.events[eventType]; return 0;}
+					return event.length;
+				},
+				'clear': function(event) {
+					delete this.events[event];
+				},
+				'call': function(node, e) {
+					var event = this.events[e.type];
+					if(event) {
+						event.forEach(function(c) {
+							if(c.call(this, e) === false) {e.preventDefault();}
+						}, node);
+					}
+				}
+			},
+			fixEv = (function() {
+				if(win.addEventListener) {
+					return function(e) {
+						return e;
+					}
+				}
+				else {
+					return function() {
+						var e = win.event;
+						e.target = e.srcElement;
+						e.relaredTarget = (e.target==e.fromElemet)?e.toElement:e.fromElement;
+						e.stopPropagation = stopPropagation;
+						e.charCode = e.keyCode;
+						e.preventDefault = preventDefault;
+						return e;
+					}
+				}
+			})();
+
+		EventData.prototype = _EventData;
+
+		function EventData() {
+			this.events = {};
 		}
 
-		function delEventFromDataObj(event, method, node) {
-			var ev = _.data(node, eventData);
-			if(ev !== undefined && ev[event] !== undefined) {
-				ev[event].del(ev[event].indexOf(method));
-				return ev[event].length;
-			}
-			return 0;
-		}		function fixEv(e) {
-			var e = e || win.event;
-			if(!e.target) {e.target = e.srcElement;}
-			if(e.type == 'keypress' && !e.charCode) {
-				e.charCode = e.keyCode;
-			}
-			if(!e.stopPropagation) e.stopPropagation = stopPropagation;
-			if(!e.preventDefault) e.preventDefault = preventDefault;
-			return e;
-		}
-
-		function execute(e) {
-			e = fixEv(e);
-			_.data(this, eventData)[e.type].forEach(function(c) {
-				if(c.call(this, e) === false) {e.preventDefault();}
-			}, this);
+		function getNodeEventData(node) {
+			return _.data(node, eventHash) || _.data(node, eventHash, new EventData);
 		}
 
 		function preventDefault() {
@@ -1046,76 +1095,180 @@
 			this.cancelBubble = true;
 		}
 
-		function ieForce(node, event_type) {
-			var evt = document.createEventObject();
-			node.fireEvent('on'+event_type, evt);
-			return node;
-		}
-
-		function otherForce(node, event_type) {
-			var evt = document.createEvent('HTMLEvents');
-			evt.initEvent(event_type, false, false);
-			node.dispatchEvent(evt);
-			return node;
+		function execute(e) {
+			e = fixEv(e);
+			getNodeEventData(this).call(this, e);
 		}
 
 		_.event = {
-			'add': function(node, event, method) {
-				if(node && event && method) {
-					addEventToDataObj(event, method, node);
-					if(!node[handlerName]) {
-						node[handlerName] = function(e) {execute.call(node, e);};
-					}
-					if(~events.indexOf(event)) {
-						addEvent(node, event, node[handlerName]);
-					}
+			'artificial': {},
+			'add': function(node, event, method, once) {
+				getNodeEventData(node).set(event, method, once);
+				if(~eventNames.indexOf(event)) {
+					if(!node[handlerHash]) node[handlerHash] = function(e) {execute.call(node, e);};
+					addEvent(node, event, node[handlerHash]);
+				}
+				else if(_.event.artificial[event]) {
+					_.bind(node, _.event.artificial[event].base, _.event.artificial[event].ini, true);
 				}
 			},
 			'del': function(node, event, method) {
-				if(node && event && method) {
-					var restEv = delEventFromDataObj(event, method, node);
-					if(~events.indexOf(event) && restEv === 0) {
-						delEvent(node, event, node[handlerName]);
-						delete node[handlerName];
+				var rest = getNodeEventData(node).unset(event, method);
+				if(rest === 0) {
+					if(~eventNames.indexOf(event)) {
+						delEvent(node, event, node[handlerHash]);
 					}
+					else if(_.event.artificial[event]) {
+						_.unbind(node, _.event.artificial[event].base, _.event.artificial[event].ini);
+					}
+					delete node[handlerHash];
 				}
-				
 			},
 			'clear': function(node, event) {
-				if(node && event && _.data(node, eventData)) {
-					var eventDataObj = _.data(node, eventData);
-					delete eventDataObj[event];
-					if(_.isEmptyObj(eventDataObj)) {
-						delEvent(node, event, node[handlerName]);
-					}				}
+				getNodeEventData(node).clear(event);
+				delEvent(node, event, node[handlerHash]);
+			},
+			'create': function(name, base, condition) {
+				if(~eventNames.indexOf(name)) return;
+				_.event.artificial[name] = {
+					'base': base,
+					'ini': function(e) {
+						if(condition(e, this)) {_.force(this, name, e);}
+					}
+				};
 			},
 			'fix': fixEv
 		};
 
-		_.force = function(node, event_type) {
-			if(node && event_type) {
-				if(event_type in events) {
-					if (doc.createEventObject) {
-						ieForce(node, event_type);
-					} else if (document.createEvent) {
-						otherForce(node, event_type);
-					}
+		_.force = function(node, eventType, e) {
+			if(node && eventType) {
+				var e = createEv(e);
+				if(eventType in eventNames) {
+					fireEv(node, eventType);
 				}
 				else {
-					var elementEvents =  _.data(node, eventData);
-					if(elementEvents && elementEvents[event_type]) {
-						elementEvents[event_type].forEach(function(c) {
-							c.call(this);
-						}, this);
-					}
+					var e = _.joinObj(e, {'type': eventType});
+					getNodeEventData(node).call(node, e);
 				}
 			}
 			else {throw Error('Call _.force function without required argument!');}
 		};
 
+		_.bind = _.event.add;
+		_.unbind = _.event.del;
+
 	})();
 
-// ########################---------- WORKING WITH COLLECTIONS
+// ########################---------- RED JS COLLECTION
+
+	function getArrWithElemById(name) {
+		return toArraySimple(_.id(name));
+	}
+
+	function getArrWithElemsByTag(name, node) {
+		return toArraySimple(_.tag(name, node));
+	}
+
+	function getArrWithElemsByClass(name, node) {
+		return toArraySimple(_.className(name, node));;
+	}
+
+	function getNodes(name, node) { // return array with matched elements
+		if(name === undefined || name === '') {return [];}
+		var	inContext = !!node,
+			firstType = type(name);
+
+		if(inContext) {
+			var secondType = type(name);
+			if(secondType.is('string')) {
+				node = getNodes(node);
+			}
+			else node = toArraySimple(node);
+		}
+		if(firstType.is('string')) {
+			var firstChar = name.charAt(0);
+			if(firstChar == '#') {
+				return getArrWithElemById(name.substr(1, name.length));
+			}
+			else if(firstChar == '.') {
+				var className = name.substr(1, name.length);
+				if(inContext) {
+					for(var nodes = [], i = 0, l = node.length; i<l; i++) {
+						nodes = nodes.concat(getArrWithElemsByClass(className, node[i]));
+					}
+					return nodes;
+					
+				}
+				else {
+					return getArrWithElemsByClass(className);
+				}
+			}
+			else if(firstChar == '+') {
+				return [_.create(name.substr(1, name.length))];
+			}
+			else {
+				if(inContext) {
+					for(var nodes = [], i = 0, l = node.length; i<l; i++) {
+						nodes = nodes.concat(getArrWithElemsByTag(name, node[i]));
+					}
+					return nodes;
+					
+				}
+				else {
+					return getArrWithElemsByTag(name);
+				}
+			}
+		}
+		else if (firstType.is('redjs')) {
+			return name.ns;
+		}
+		else {
+			return toArraySimple(name);
+		}
+	}
+
+	function RedJScollection(name, context) {
+		this.ns = getNodes(name, context);
+		this.length = this.ns.length;
+	};
+
+	_.fn = {
+		'constructor': _,
+		'include': function() {
+			for(var i = 0, l = arguments.length; i < l; i++) {
+				var nodes = getNodes(arguments[i]);
+				nodes.forEach(function(c) {
+					if(!~this.ns.indexOf(c)) {
+						this.ns.push(c)
+					}
+				}, this);
+				this.length = this.ns.length;
+			}
+			return this;
+		},
+		'exclude': function() {
+			for(var i = 0, l = arguments.length; i < l; i++) {
+				var nodes = getNodes(arguments[i]);
+				this.ns = this.ns.filter(function(c) {
+					return !~nodes.indexOf(c);
+				}, this);
+				this.length = this.ns.length;
+			}
+			return this;
+		}
+	};
+
+	RedJScollection.prototype = _.fn;
+
+	_.multi = function() { // multiselection
+		var M = _();
+		for(var i = 0, l = arguments.length; i<l; i++) {
+			M.include(arguments[i]);
+		}
+		return M;
+	};
+
+// ########################---------- FN EXTENSION
 
 	_.extend = function(obj) {
 		if(typeof obj == 'object') {
@@ -1135,12 +1288,14 @@
 	};
 
 	_.extend({
+
 		'each': function(f) {
 			this.ns.forEach(f);
 			return this;
 		},
 
 // data manipulation
+
 		'data': function(name, val) {
 			if(name !== undefined && name !== '') {
 				if(arguments.length == 2) {
@@ -1149,15 +1304,22 @@
 					});
 				}
 				else {
-					return _.data(this.ns[0], name);
+					if(this.ns[0]) return _.data(this.ns[0], name);
 				}
 			}
 			return this;
 		},
 
 // collection manipulation
+
 		'eq': function(n) {
-			return _(this.ns[n]);
+			if(this.ns[n]) return _(this.ns[n]);
+		},
+		'first': function() {
+			return this.eq(0);
+		},
+		'last': function() {
+			return this.eq(this.length-1);
 		},
 		'children': function(tagName) {
 			var M = _();
@@ -1165,12 +1327,6 @@
 				M.include(_.children(c, tagName));
 			});
 			return M;
-		},
-		'last': function() {
-			return this.eq(this.length-1);
-		},
-		'first': function() {
-			return this.eq(0);
 		},
 		'parent': function() {
 			var M = _();
@@ -1180,15 +1336,17 @@
 			return M;
 		},
 		'firstChild': function(child) {
-			if(child) {
-				this.each(function(c) {
-					_.firstChild(c, child);
+			if(child === undefined) {
+				var M = _();
+				this.ns.forEach(function(c) {
+					M.include(_.firstChild(c));
 				});
+				return M;
 			}
 			else {
 				var M = _();
-				this.ns.forEach(function(c) {
-					M.include(c.firstChild);
+				this.each(function(c) {
+					M.include(_.firstChild(c, child));
 				});
 				return M;
 			}
@@ -1207,6 +1365,7 @@
 		},
 
 // appearance manipulation
+
 		'hide': function(time, callback) {
 			this.ns.forEach(function(c) {
 				_.hide(c, time, callback);
@@ -1227,20 +1386,17 @@
 		},
 
 // events
+
 		'bind': function(event, action) {
-			if(event && action) {
-				this.ns.forEach(function(c) {
-					_.event.add(c, event, action);
-				});
-			}
+			this.ns.forEach(function(c) {
+				_.bind(c, event, action);
+			});
 			return this;
 		},
 		'unbind': function(event, action) {
-			if(event && action) {
-				this.ns.forEach(function(c) {
-					_.event.del(c, event, action);
-				});
-			}
+			this.ns.forEach(function(c) {
+				_.unbind(c, event, action);
+			});
 			return this;
 		},
 		'force': function(event_type) {
@@ -1249,7 +1405,7 @@
 			});
 			return this;
 		},
-		'clearEv': function(ev) {
+		'clearEvent': function(ev) {
 			this.ns.forEach(function(c) {
 				_.event.clear(c, ev);
 			});
@@ -1257,16 +1413,15 @@
 		},
 
 // attr manipulation
+
 		'attr': function(name, val) {
-			if(name) {
-				if(arguments.length == 2) {
-					this.ns.forEach(function(c) {
-						c.setAttribute(name, val);
-					});
-				}
-				else {
-					return this.ns[0].getAttribute(name);
-				}
+			if(arguments.length === 2) {
+				this.ns.forEach(function(c) {
+					c.setAttribute(name, val);
+				});
+			}
+			else {
+				if(this.ns[0]) return this.ns[0].getAttribute(name);
 			}
 			return this;
 		},
@@ -1284,34 +1439,37 @@
 			});
 			return this;
 		},
+		'hasClass': function(name) {
+			if(this.ns[0]) return _.hasClass(this.ns[0], name);
+		},
 		'css': function(name, value) {
-			var nameType = type(name);
-			if(nameType == type.object || (name && value)) {
+			if(value !== undefined || name instanceof Object) {
 				this.ns.forEach(function(c) {
 					_.css(c, name, value);
 				});
 			}
-			else if(nameType == type.string) {
-				return _.css(this.ns[0], name);
+			else {
+				if(this.ns[0]) return _.css(this.ns[0], name);
 			}
 			return this;
 		},
 		'height': function(padding, border, margin) {
-			return _.height(this.ns[0], padding, border, margin);
+			if(this.ns[0]) return _.height(this.ns[0], padding, border, margin);
 		},
 		'val': function(value) {
-			if(value) {
+			if(value !== undefined) {
 				this.ns.forEach(function(c) {
 					c.value = value;
 				});
 				return this;
 			}
 			else {
-				return this.ns[0].value;
+				if(this.ns[0]) return this.ns[0].value;
 			}
 		},
 
 // dom manipulation
+
 		'wrap': function(wrapper) {
 			this.ns.forEach(function(c) {
 				_.wrap(c, wrapper);
@@ -1323,20 +1481,20 @@
 				this.ns.forEach(function(c) {
 					c.innerHTML = html;
 				});
-				return this;
 			}
 			else {
-				return this.ns[0].innerHTML;
+				if(this.ns[0]) return this.ns[0].innerHTML;
 			}
+			return this;
 		},
 		'append': function(node) {
 			var nodeType = type(node);
-			if(nodeType == type.node) {
+			if(nodeType.is('node')) {
 				this.each(function(c) {
 					c.appendChild(node);
 				});
 			}
-			else if(nodeType == type.redjs) {
+			else if(nodeType.is('redjs')) {
 				this.each(function(c) {
 					node.each(function(cc) {
 						c.appendChild(cc);
@@ -1345,18 +1503,45 @@
 			}
 			return this;
 		}
+
 	});
 
-	events.forEach(function(c) {
-		var ev = {};
-		ev[c] = function(method) {
-				this.ns.forEach(function(cc) {_.event.add(cc, c, method);});
-				return this;
-			};
-		_.extend(ev);
-	});
+// --------- EVENTS ADDING
 
-	win._ = _;
+	;(function() {
+
+		var events = eventNames.copy();
+
+		function parentCheck(e, parent) {
+			var related = e.relatedTarget;
+			while(related && e.tagName != 'HTML') {
+				if(related == parent) {return false;}
+				related = related.parentNode;
+			}
+			return true;
+		}
+
+		if(!_.browser.msie) {
+			_.event.create('mouseenter', 'mouseover', parentCheck);
+			_.event.create('mouseleave', 'mouseout', parentCheck);
+
+			events.push('mouseenter', 'mouseleave');
+		}
+
+		events.forEach(function(c) {
+			var ev = {};
+			ev[c] = function(method) {
+					this.ns.forEach(function(cc) {_.event.add(cc, c, method);});
+					return this;
+				};
+			_.extend(ev);
+		});
+
+	})();
+
+// --------- GLOBALS
+
+	if(!win._) win._ = _;
 	win.redjs = redjs;
 
 })(window);
