@@ -993,7 +993,7 @@
 
 // --------- EVENTS
 
-	var eventNames = ['click', 'dblclick', 'mousedown', 'mouseup', 'mouseover', 'mouseout', 'focus', 'blur', 'change', 'submit', 'dragstart', 'dragenter', 'dragover', 'drop', 'keypress'];
+	var eventNames = ['click', 'dblclick', 'mousedown', 'mouseup', 'mouseover', 'mouseout', 'focus', 'blur', 'change', 'submit', 'keypress'];
 
 	if(_.browser.msie) {
 		eventNames.push('mouseenter', 'mouseleave');
