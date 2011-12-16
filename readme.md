@@ -1,19 +1,22 @@
-# RedJS
+# RedJS - color your javascript
+
 
 ## Preface
 
 RedJS довольно маленькая и быстрая библиотека, которую я написал под своё RIA.
 Вдохновители: jQuery, mootools, CoreJS, CrossJS, microbe.js & javascript.ru
 
+
 ## Архитектура
 
 Архитектура библиотеки это:
 
-1. Вспомогательные функции работы с отдельными нодами. Вид: _.data(node, .....).
-2. Методы объекта/прототипа RedJScollection работы с выборками. Вид: _('div').data( ...... ).
-3. Дополнительные модули функций, расширяющие либо redjs объект, либо прототип объекта коллекций.
+1. Кроссбраузерные функции работы с отдельными нодами. Вид: _.fn(node, .....).
+2. Методы объекта/прототипа RedJScollection работы с выборками. Вид: _('[selector]').fn( ...... ).
+3. Дополнительные модули функций, расширяющие redjs объект и/или прототип объекта коллекций.
 
 1-е полностью дублируются 2-ми.
+
 
 ## Подключение
 
@@ -31,6 +34,7 @@ RedJS довольно маленькая и быстрая библиотека
 
 > `_(document).bind('ready', function() { ... });`
 
+
 ## Совместимость
 
 Библиотека создаёт 2-е глобальные переменные:
@@ -39,6 +43,7 @@ RedJS довольно маленькая и быстрая библиотека
 * 'redjs' (всегда).
 
 функции: `_.easyModeOn()` и `_.easyModeOff()` регулируют переменную '_'.
+
 
 ## Расширение встроенных объектов
 
@@ -65,6 +70,7 @@ RedJS довольно маленькая и быстрая библиотека
 ### Number
 
 * n.limit(a, b) - если число входит в интервал [min, max] вернёт его. Иначе ближнее значение.
+
 
 ## Утилиты
 
@@ -108,9 +114,34 @@ RedJS довольно маленькая и быстрая библиотека
 * _.props(obj) - распечатывает св-ва объекта в консоль.
 * _.time(function() { ... }) - считает время выполнения кода.
 
+
+## Кроссбраузерные функции работы с нодами (1)
+
+### Функции выборки
+
+* _.tag('tagName') - сокращённая запись document.getElementsByTagName('tagName').
+* _.id('id') - сокращённая запись document.getElementById('id').
+* _.className('className') - сокращённая запись document.getElementsByClassName('className').
+
+### Работа с DOM
+
+* _.create('tagName', attr) - сокращённая запись document.createElement(tagName). 2-й аргумент объект. Его св-ва становятся атрибутами нового нода.
+* _.wrap(node, 'wrap', [attr]) - Делает обёртку нода. Если 2-й параметр строка - параметры 2,3 передаются функции _.create.
+* _.children(node, ['tagName']) - возвращает потомков нода. Если 2-й параметр задан - фильтрует их по имени нода.
+* _.firstChild(node, [child]) - в зависимости от наличия 2-го параметра получает или устанавливает первый потомок нода.
+* _.getNodeText(node) - полезнаю функция для работы с xml.
+
+### Работа с className
+
+* _.addClass(node, 'name') - добавляем класс.
+* _.delClass(node, 'name') - удаляем класс.
+* _.hasClass(node, 'name) [true/false] - проверяем наличие класса.
+* _.toggleClass(node, 'name') [true/false] - пытается установить или удалить класс в зависимости от его отсутствия или присутствия.
+
+
 ## Подробнее об объекте RedJScollection
 
-Функция redjs возвращает объект типа RedJScollection. Её аргумент и может иметь следующий вид:
+Функция redjs возвращает объект типа RedJScollection. Её аргумент может иметь следующий вид:
 
 * _('[tagName]', parent)
 * _('.[className]', parent)
@@ -139,9 +170,6 @@ RedJS довольно маленькая и быстрая библиотека
 
 Обратите внимание, что это не универсальная функция extend.
 
-## Кроссбраузерные функции работы с нодами (1)
-
-soon
 
 ## Data модуль
 
@@ -152,6 +180,69 @@ soon
 `_(node).data(name, [val])`
 
 > Честно говоря с jquery-евской data особо не разбирался, но тесты производительности показали ошеломляющий перевес в скорости моей функции(точно не помню цифру. более чем на порядок).
+
+
+## Events модуль {зависимости: Data}
+
+Работа с нодом:
+
+	function foo(a, b) {alert(1);}
+	_.event.add(node, 'eventName', foo);
+	_.event.add(node, 'eventName', foo);
+	_.event.del(node, 'eventName', foo);
+	_.force(node, 'eventName'); // 1
+	_.event.clear(node, 'eventName');
+	_.force(node, 'eventName'); // ничего
+
+**eventName** может быть любое, тк поддерживаются искусственные ивенты.
+
+Укороченный вариант:
+
+	_.bind(node, 'eventName', foo);
+	_.unbind(node, 'eventName', foo);
+
+Для выборок это:
+
+	_( ... ).bind('eventName', foo);
+	_( ... ).unbind('eventName', foo);
+
+Так же для выбророк есть укороченные варианты методов **встроенных ивентов**:
+
+* click
+* dblclick
+* mousedown
+* mouseup
+* mouseover
+* mouseout
+* focus
+* blur
+* change
+* submit
+* dragstart
+* dragenter
+* dragover
+* drop
+* keypress
+* mouseenter
+* mouseleave
+
+## CSS модуль
+
+Основноая функция, которую я пытался сделать более менее универсальной: **_.css(node, name, [value])**
+
+Работает как геттер или сеттер в зависимости от кол-ва параметров.
+
+Имена св-в как и в нативном js.
+
+Пока пофикшены следующие св-ва:
+* opacity
+* float
+
+Для получения расчитанного св-ва есть синоним: `_.gstyle(node, name)`
+
+Этот модуль так же предостовляет функцию **_.height(node, padding, border, margin)**
+
+padding, border, margin - true если надо учиывать.
 
 ## Deferred модуль
 
@@ -194,10 +285,70 @@ soon
 
 > А так же св-ва типа funcList: errorList, successList, errorList ^^
 
-## Ajax модуль
 
-soon
+## Ajax модуль {зависимости: Deferred}
+
+Основная функция: **_.aj.query([attr])**. Возвращает deferred объект.
+
+Св-ва, что не указаны в объекте attr, берутся у объекта **_.aj.settings**. Сейчас там мои настройки - меняйте на свои.
+
+Настройки по умалчанию:
+
+	{
+		'type': 'post',
+		'url': location.href,
+		'user': null,
+		'password': null,
+		'accept': 'json'
+	}
+
+Пример:
+
+	var smt = window; // eg
+	var req = _.aj.query({
+		before: function() {alert(1);},
+		timeout: 30000,
+		context: smth
+	});
+	req.success(function() {
+		alert(2);
+	}).error(function() {
+		alert(3);
+	}).anyway(function() {
+		alert(4);
+	});
+	req.reject(); // запрос прервётся. выведет: 1, 3, 4
+	
 
 ## Cookies модуль
 
-soon
+Предоставляет универсальную функцию работы с куками:
+
+	_.cookie(name, value, [days], [otherAttr]); // set
+	var val = _.cookie(name); // get
+
+**otherAttr** - объект с именами св-в такими же как у опций печенек.
+
+
+## Animation модуль {зависимости: Data}
+
+Костяк модуля следующая функция:
+
+	_.animate(node, type, terminal, time, [callback], [fnName]);
+
+
+* type - css св-во
+* terminal - значение по окончании анимации (без ед измерения. она вычисляется сама)
+* time - время анимации
+* callback - функция запустится по оканчании анимации.
+* fnName - значения: linear, swing. По умалчанию 2-я.
+
+### Комплексные функции:
+
+* _.hide(node, [time]) - с временем => непрозрачность = 0 + display = node. Без времени => правильный хайд.
+* _show(node, [time]) - с временем => непрозрачность = 1 + display = какое было || block. Без времени => правильный шоу.
+
+
+
+
+

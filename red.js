@@ -925,9 +925,9 @@
 		return node;
 	};
 
-	_.wrap = function(node, wrapper) {
+	_.wrap = function(node, wrapper, attr) {
 		if(wrapper.hasWord) {
-			wrapper = _.create(wrapper);
+			wrapper = _.create(wrapper, attr);
 		}
 		node.parentNode.insertBefore(wrapper, node);
 		wrapper.appendChild(node);
