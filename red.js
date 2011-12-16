@@ -171,7 +171,7 @@
 		return 'rgb('+this.getColors().join(',')+')';
 	},
 
-	S.toHex = function(str) {
+	S.toHex = function() {
 		return '#'+this.getColors().map(function(c) {
 			var color = c.toString(16);
 			return (color.length === 1)?0+color:color;
@@ -348,7 +348,7 @@
 	}
 
 	_.easyModeOff = function() {
-		if(window._ == _) {delete window._; return true;}
+		if(window._ == _ && window._ === redjs) {delete window._; return true;}
 		return false;
 	}
 
