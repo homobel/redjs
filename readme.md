@@ -1,7 +1,203 @@
-# Intro
+# RedJS
 
-RedJS is small & fast js library that I've wrote for my own proposes. Now I want to share it with others.
+## Preface
 
-Look for documentation in pages tab.
+RedJS довольно маленькая и быстрая библиотека, которую я написал под своё RIA.
+Вдохновители: jQuery, mootools, CoreJS, CrossJS, microbe.js & javascript.ru
 
-Inspirers: jQuery, mootools, CoreJS, CrossJS, microbe.js & others...
+## Архитектура
+
+Архитектура библиотеки это:
+
+1. Вспомогательные функции работы с отдельными нодами. Вид: _.data(node, .....).
+2. Методы объекта/прототипа RedJScollection работы с выборками. Вид: _('div').data( ...... ).
+3. Дополнительные модули функций, расширяющие либо redjs объект, либо прототип объекта коллекций.
+
+1-е полностью дублируются 2-ми.
+
+## Подключение
+
+В хедер добавляем:
+
+`<script src="путь/до/red.js"></script>`
+
+> ### В сторону
+> Встроенного события DOMready в библиотеке нету.  
+> Чтобы обеспечить подобный функционал подключаем перед закрытием body:
+
+> `<script type="text/javascript">_.forсe(document, 'ready');</script>`
+
+> Использование:
+
+> `_(document).bind('ready', function() { ... });`
+
+## Совместимость
+
+Библиотека создаёт 2-е глобальные переменные:
+
+* '_' (создаётся если переменная с таким именем не задана).
+* 'redjs' (всегда).
+
+функции: `_.easyModeOn()` и `_.easyModeOff()` регулируют переменную '_'.
+
+## Расширение встроенных объектов
+
+### Array
+
+* обратная совместимость с js 1.6(indexOf, lastIndexOf, forEach, map, filter, every, some).
+* [].copy() - возвращает копию массива.
+* [].del(n) - удаление по индексу.
+* [].linear() - превращает любой массив в одномерный.
+* [].pushOnce(smth) - добавляет значение, если такого нету в массиве.
+* [].toggle() - добавляет или удаляет значение в зависимости от его отсутствия или присутствия.
+
+### String
+
+* ''.isMail() [true/false] - является ли строка правильным почтовым ящиком.
+* ''.hasWord(str) [true/false] - присутствует ли в строке слово.
+* ''.camelCase() - возвращает строку в камелКэйсе.
+* ''.toInt([base]) - преобразует в Int.
+* ''.toFloat([base]) - преобразует в Float.
+* ''.getColors() - возвращает массив [r, g, b]. Строка Hex или RGB не важно.
+* ''.toRgb() -  '#fff'.toRgb() // возвращает 'rgb(255, 255, 255)'.
+* ''.toHex() - 'rgb(255, 255, 255)'.toHex() // возвращает '#ffffff'.
+
+### Number
+
+* n.limit(a, b) - если число входит в интервал [min, max] вернёт его. Иначе ближнее значение.
+
+## Утилиты
+
+### _.type(smth)
+
+Исторически получилось несколько способов применения:
+
+`_.type('Hi world!').is('string') // true`
+
+`_.type({a: 1}) === _.type.object// true`
+
+Рекомендуется 1-й, как оказалось - более быстрый.
+
+Перечень типов:
+
+* undefined 
+* boolean 
+* number 
+* string 
+* function 
+* node 
+* nodelist 
+* array 
+* object 
+* null 
+* redjs 
+* unknown (на всякий случай:)) 
+
+### Определение браузера
+
+`if(_.browser.firefox) { ... }` допустимые св-ва: firefox, msie, opera, chrome, safari
+
+`if(_.ielt9) { ... }`
+
+### Остальные
+* _.isEmptyObj(obj) - true если у объекта нет перечисляемых св-в.
+* _.joinObj(a, b, c ...) - создаёт новый объект и в него переписывает св-ва объектов переданных в функцию.
+* _.toArray(a, b, c ...) - возвращает массив из всего, что перечисляется. Простые типы просто push-аться.
+* _.easyModeOn() [true/false] - пытается объявить односимвольный глобальный синоним.
+* _.easyModeOff() [true/false] - пытается удалить односимвольный глобальный синоним.
+* _.props(obj) - распечатывает св-ва объекта в консоль.
+* _.time(function() { ... }) - считает время выполнения кода.
+
+## Подробнее об объекте RedJScollection
+
+Функция redjs возвращает объект типа RedJScollection. Её аргумент и может иметь следующий вид:
+
+* _('[tagName]', parent)
+* _('.[className]', parent)
+* _('#[id]', parent)
+* _('+[tagName]') - создаёт элемент.
+
+*parent* - может быть строка-селектор/нод/коллекция/RedJScollection/массив с нодами
+
+Структура коллекции:
+
+	{
+		length: n,
+		ns: [node1, node2, ...]
+	}
+
+Для мультивыбора предусмотрена функция: **_.multi(a, b, c)**
+
+Так же с коллекциями можно делать следующее:
+
+	var c = _('*').exclude('span', _('div'));
+	c.include('.span-with-some-class');
+
+### Расширение прототипа коллекций
+
+Расширение прототипа RedJScollection делается фунцией `_.extend({prop: smth, ... })`
+
+Обратите внимание, что это не универсальная функция extend.
+
+## Кроссбраузерные функции работы с нодами (1)
+
+soon
+
+## Data модуль
+
+Обеспечивает функции прикрепления данных к ноду, для устранения так называемых утечек в памяти(ie).
+
+`_.data(node, name, [val])`
+
+`_(node).data(name, [val])`
+
+> Честно говоря с jquery-евской data особо не разбирался, но тесты производительности показали ошеломляющий перевес в скорости моей функции(точно не помню цифру. более чем на порядок).
+
+## Deferred модуль
+
+Предоставляет 2 типа объекта.
+
+### FuncList
+
+	function foo(a, b) {alert([this, a, b].join());}
+	var f = _.funcList();
+	f.add(foo);
+	f.add(foo);
+	f.add(foo);
+	f.exec(1, 2, 3); // '1,2,3' 3 раза
+	f.del(foo);
+	f.exec(1, 2, 3); // '1,2,3' 2 раза
+	f.del(foo, true);
+	f.exec(1, 2, 3); // ничего
+
+У объекта так же есть св-во **calls** хранящее в себе число вызовов.
+
+### Deferred
+
+	var d = _.deferred();
+	d.succes(function(arg1, arg2) {
+		alert('success');
+	}).error(function(arg1, arg2) {
+		alert('error');
+	}).anyway(function(arg1, arg2) {
+		alert('anyway');
+	});
+
+	d.resolve(context, arg1, arg2); // alert success, anyway
+	d.reject(context, arg1, arg2); // ничего
+
+У объекта так же есть св-во **status**. Значения
+
+* -1 - не вызывался
+* 0 вызвался через reject
+* 1 вызвался через resolve
+
+> А так же св-ва типа funcList: errorList, successList, errorList ^^
+
+## Ajax модуль
+
+soon
+
+## Cookies модуль
+
+soon

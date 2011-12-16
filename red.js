@@ -415,8 +415,8 @@
 					this.calls++;
 					var args = arguments;
 					this.list.forEach(function(c) {
-						c.apply(this, slice.call(args, 1));
-					}, obj);
+						c.apply(obj, slice.call(args, 1));
+					});
 					return this;
 				},
 				'add': function(func) {
