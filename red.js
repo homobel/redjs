@@ -1,9 +1,8 @@
 
-//	RedJS library v. 0.7				//
-//	28.11.2011						//
-//								//
-//	author: Archy Sharp 				//
-//	see http://redjs.ru for details		//
+//	RedJS library v. 0.7						//
+//										//
+//	by: Archy Sharp 							//
+//	see https://github.com/homobel/redjs for details	//
 
 'use strict';
 
@@ -200,7 +199,8 @@
 		hash = ('redjs'+Math.random()).replace('0.', ''),
 
 		doc = document,
-		win = window;
+		win = window,
+		type;
 
 // ########################---------- TYPE DETERMINANT
 
@@ -239,11 +239,9 @@
 			this[i] = c;
 		}, getType);
 
-		_.type = getType;
+		type = _.type = getType;
 
 	})();
-
-	var type = _.type;
 
 // ########################---------- INNER FUNCTIONS
 
@@ -1059,7 +1057,7 @@
 				}
 			},
 			fixEv = (function() {
-				if(win.addEventListener) {
+				if(!ielt9) {
 					return function(e) {
 						return e;
 					}
