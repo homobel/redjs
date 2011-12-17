@@ -166,6 +166,15 @@ RedJS довольно маленькая и быстрая библиотека
 	var c = _('*').exclude('span', _('div'));
 	c.include('.span-with-some-class');
 
+### Функции работы с выборкой
+
+* each(function(current, index, array) { ... })
+* filter(function(current, index, array) { ... }) [true/false]
+* eq(n)
+* first()
+* last()
+* find('selector')
+
 ### Расширение прототипа коллекций
 
 Расширение прототипа RedJScollection делается фунцией **_.extend({prop: smth, ... })**
