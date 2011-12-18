@@ -1312,6 +1312,7 @@
 
 		'eq': function(n) {
 			if(this.ns[n]) return _(this.ns[n]);
+			return this;
 		},
 		'first': function() {
 			return this.eq(0);
