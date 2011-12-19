@@ -82,6 +82,14 @@
 
 	// additional
 
+	A.forEachInv = function(fn, thisObj) {
+		for (var i = this.length; i-- ;) {
+			if (i in this) {
+				fn.call(thisObj, this[i], i, this);
+			}
+		}
+	};
+
 	A.copy = function() {
 		return this.slice(0);
 	};
