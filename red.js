@@ -451,8 +451,8 @@
 						this.status = 1;
 						this.context = context;
 						this.arg = slice.call(arguments, 1);
-						this.successList.exec(context, this.arg);
-						this.anywayList.exec(context, this.arg);
+						this.successList.exec.apply(this.successList, arguments);
+						this.anywayList.exec.apply(this.anywayList, arguments);
 					}
 				},
 				'reject': function(context) {
@@ -460,8 +460,8 @@
 						this.status = 0;
 						this.context = context;
 						this.arg = slice.call(arguments, 1);
-						this.errorList.exec(context, this.arg);
-						this.anywayList.exec(context, this.arg);
+						this.errorList.exec.apply(this.errorList, arguments);
+						this.anywayList.exec.apply(this.anywayList, arguments);
 					}
 				},
 				'success': function(func) {
@@ -1501,15 +1501,15 @@
 					c.appendChild(node);
 				});
 			}
-			else if(nodeType.is('redjs')) {
-				this.each(function(c) {
-					node.each(function(cc) {
-						c.appendChild(cc);
+			else {
+				if(nodeType.is('string')) {node = _(_('+div').html(node).ns[0].childNodes);}
+				if(node instanceof RedJScollection) {
+					this.each(function(c) {
+						node.each(function(cc) {
+							c.appendChild(cc);
+						});
 					});
-				});
-			}
-			else if(nodeType.is('string')) {
-				this.append(_(_('+div').html(node).ns[0].childNodes));
+				}
 			}
 			return this;
 		}
