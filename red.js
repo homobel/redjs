@@ -82,7 +82,7 @@
 
 	// additional
 
-	A.forEachInv = function(fn, thisObj) {
+	A.forEachInvert = function(fn, thisObj) {
 		for (var i = this.length; i-- ;) {
 			if (i in this) {
 				fn.call(thisObj, this[i], i, this);
@@ -1507,6 +1507,9 @@
 						c.appendChild(cc);
 					});
 				});
+			}
+			else if(nodeType.is('string')) {
+				this.append(_(_('+div').html(node).ns[0].childNodes));
 			}
 			return this;
 		}
