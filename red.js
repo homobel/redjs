@@ -1,8 +1,8 @@
 
-//	RedJS library v. 0.7						//
-//										//
-//	by: Archy Sharp 							//
-//	see https://github.com/homobel/redjs for details	//
+//	RedJS library v. 0.7
+
+//	by: Archy Sharp
+//	see https://github.com/homobel/redjs for details
 
 'use strict';
 
