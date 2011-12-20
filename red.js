@@ -4,8 +4,6 @@
 //	by: Archy Sharp
 //	see https://github.com/homobel/redjs for details
 
-'use strict';
-
 /* --------------------######-------------------- Default obj's extension --- */
 
 ;(function(A) {
