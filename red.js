@@ -200,7 +200,7 @@
 
 ;(function(win) {
 
-	var	_ = function(name, node) {return new RedJScollection(name, node);},
+	var	_ = function(name, node) {return new redjsCollection(name, node);},
 		redjs = _,
 		ielt9 = '\v' == 'v',
 
@@ -223,7 +223,7 @@
 				case 'number': return getType['number'];
 				case 'string': return getType['string'];
 				case 'function': if(something.call) {return getType['function'];};
-				case 'object': if(something instanceof RedJScollection) {return  getType['redjs'];}
+				case 'object': if(something instanceof redjsCollection) {return  getType['redjs'];}
 						else if(something === null) {return getType['null'];}
 						else if(something instanceof Array) {return getType['array'];}
 						else if(something.nodeName && something.nodeType !== undefined) {return getType['node'];}
@@ -1233,7 +1233,7 @@
 		}
 	}
 
-	function RedJScollection(name, context) {
+	function redjsCollection(name, context) {
 		this.ns = getNodes(name, context);
 		this.length = this.ns.length;
 	};
@@ -1264,7 +1264,7 @@
 		}
 	};
 
-	RedJScollection.prototype = _.fn;
+	redjsCollection.prototype = _.fn;
 
 	_.multi = function() { // multiselection
 		var M = _();
@@ -1295,8 +1295,8 @@
 
 	_.extend({
 
-		'each': function(f) {
-			this.ns.forEach(f);
+		'each': function(f, context) {
+			this.ns.forEach(f, context);
 			return this;
 		},
 
@@ -1503,15 +1503,16 @@
 			}
 			else {
 				if(nodeType.is('string')) {node = _(_('+div').html(node).ns[0].childNodes);}
-				if(node instanceof RedJScollection) {
+				if(node instanceof redjsCollection) {
 					this.each(function(c) {
 						node.each(function(cc) {
 							c.appendChild(cc);
 						});
 					});
+					return node;
 				}
 			}
-			return this;
+			return _(node);
 		}
 
 	});
