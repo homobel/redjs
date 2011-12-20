@@ -426,7 +426,7 @@ padding, border, margin - true если надо учиывать.
 	});
 	req.reject(); // запрос прервётся. выведет: 1, 3, 4
 
-Для работы с json, следует подключить скрипт с http://json.org отдельно  
+Для работы с json, следует подключить скрипт с http://json.org отдельно(для совместимости)
 
 	...success(function(data) {
 		data = JSON.parse(data);
