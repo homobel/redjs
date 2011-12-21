@@ -312,7 +312,7 @@
 	_.hash = hash;
 
 	_.isEmptyObj = function(obj) {
-		for(var prop in obj) {return false;}
+		for(var prop in obj) {			if(obj.hasOwnProperty(prop)) return false;		}
 		return true;
 	};
 
@@ -969,6 +969,10 @@
 		return node.text || node.textContent || '';
 	};
 
+	_.remove = function(node) {
+		node.parentNode.removeChild(node);
+	};
+
 // --------- CLASS MANIPULATION
 
 	_.addClass = function(node, name) {
@@ -999,45 +1003,41 @@
 
 // --------- EVENTS
 
-	var eventNames = ['abort', 'load', 'click', 'dblclick', 'mousedown', 'mouseup', 'mouseover', 'mouseout', 'focus', 'blur', 'change', 'submit', 'keypress', 'keydown', 'keyup'];
-
-	if(_.browser.msie) {
-		eventNames.push('mouseenter', 'mouseleave');
-	}
-
 	;(function() {
 
 		var	addEvent = (function() {
-				if(win.addEventListener){
+				if(win.addEventListener) {
 					return function(node, type, handler) {node.addEventListener(type, handler, false);};
 				} else {
 					return function(node, type, handler) {node.attachEvent('on'+type, handler);};
 				}
 			})(),
 			delEvent = (function() {
-				if(win.removeEventListener){
+				if(win.removeEventListener) {
 					return function(node, type, handler) {node.removeEventListener(type, handler, false);};
 				} else {
 					return function(node, type, handler) {node.detachEvent('on'+type, handler);};
 				}
 			})(),
-			createEv = (function() {
-				if(doc.createEventObject) {
-					return function(e) {return e || document.createEventObject();};
-				} else if(document.createEvent) {
-					return function(e) {return e || document.createEvent('HTMLEvents');};
-				}
-			})(),
-			fireEv = (function() {
-				if(doc.createEventObject) {
-					return function(node, type, e) {node.fireEvent('on'+type, e);};
-				} else if(document.createEvent) {
-					return function(node, type, e) {e.initEvent(type, false, false); node.dispatchEvent(e);};
-				}
-			})(),
 
-			eventHash = 'event___'+hash,
-			handlerHash = 'handler___'+hash,
+			fixEv = (function() {
+				if(!ielt9) {
+					return function(e) {
+						return e;
+					}
+				}
+				else {
+					return function() {
+						var e = win.event;
+						e.target = e.srcElement;
+						e.relaredTarget = (e.target==e.fromElemet)?e.toElement:e.fromElement;
+						e.stopPropagation = stopPropagation;
+						e.charCode = e.keyCode;
+						e.preventDefault = preventDefault;
+						return e;
+					}
+				}
+			})(),
 
 			_EventData = {
 				'set': function(event, func, once) {
@@ -1059,39 +1059,17 @@
 					var event = this.events[e.type];
 					if(event) {
 						event.forEach(function(c) {
-							if(c.call(this, e) === false) {e.preventDefault();}
-						}, node);
+							if(c.call(node, e) === false) {e.preventDefault();}
+						});
 					}
 				}
-			},
-			fixEv = (function() {
-				if(!ielt9) {
-					return function(e) {
-						return e;
-					}
-				}
-				else {
-					return function() {
-						var e = win.event;
-						e.target = e.srcElement;
-						e.relaredTarget = (e.target==e.fromElemet)?e.toElement:e.fromElement;
-						e.stopPropagation = stopPropagation;
-						e.charCode = e.keyCode;
-						e.preventDefault = preventDefault;
-						return e;
-					}
-				}
-			})();
-
-		EventData.prototype = _EventData;
+			};
 
 		function EventData() {
 			this.events = {};
 		}
 
-		function getNodeEventData(node) {
-			return _.data(node, eventHash) || _.data(node, eventHash, new EventData);
-		}
+		EventData.prototype = _EventData;
 
 		function preventDefault() {
 			this.returnValue = false;
@@ -1101,67 +1079,129 @@
 			this.cancelBubble = true;
 		}
 
-		function execute(e) {
-			e = fixEv(e);
-			getNodeEventData(this).call(this, e);
-		}
+		function EventController() {
 
-		_.event = {
-			'artificial': {},
-			'add': function(node, event, method, once) {
+			var	eventHash = 'event___'+hash,
+				handlerHash = 'handler___'+hash,
+
+				_this = this,
+
+				eventsList = ['abort', 'load', 'unload', 'click', 'dblclick', 'mousedown', 'mouseup', 'mouseover', 'mouseout', 'focus', 'blur', 'change', 'submit', 'keypress', 'keydown', 'keyup'],
+				eventsType = {
+					'UIEvents': ['DOMFocusIn', 'DOMFocusOut', 'DOMActivate'],
+					'MouseEvents': ['click', 'dblclick', 'mousedown', 'mouseup', 'mouseover', 'mouseout', 'mousemove'],
+					'HTMLEvents': ['load', 'unload', 'abort', 'error', 'select', 'change', 'submit', 'reset', 'focus', 'blur', 'resize', 'scroll'],
+					'KeyboardEvent': ['keypress', 'keydown', 'keyup'],
+					'MutationEvent': ['DOMSubtreeModified', 'DOMNodeInserted', 'DOMNodeRemoved', 'DOMNodeRemovedFromDocument', 'DOMNodeInsertedIntoDocument', 'DOMAttrModified', 'DOMCharacterDataModified']
+				},
+				fireEv = (function() {
+					if(ielt9) {
+						return function(node, type, e) {
+							e = doc.createEventObject(e);
+							e.type = type;
+							try {node.fireEvent('on'+type, e);}
+							catch(err) {
+								getNodeEventData(node).call(node, e);
+								if(!e.cancelBubble && node.parentNode) {fireEv(node.parentNode, 'type', e);}
+							}
+						};
+					} else {
+						return function(node, type, e) {
+							var e = e || {}, event = document.createEvent(getEventType(type, e));
+							event.initEvent(type, true, true, win, 1, e.sceenX, e.screenY, e.clientX, e.clientY, e.ctrlKey, e.altKey, e.shiftKey, e.metaKey, e.button, e.relatedTarget);
+							node.dispatchEvent(event);
+						};
+					}
+				})();
+
+			if(_.browser.msie || _.browser.opera) {
+				eventsList.push('mouseenter', 'mouseleave');
+				eventsType.MouseEvents.push('mouseenter', 'mouseleave');
+			}
+
+			// Inner
+
+			function getEventType(type, e) {
+				var type = e.type || type;
+				for(var prop in eventsType) {
+					if(~eventsType[prop].indexOf(type)) return prop;
+				}
+				return 'Event';
+			}
+	
+			function execute(e) {
+				e = fixEv(e);
+				getNodeEventData(this).call(this, e);
+			}
+
+			function getNodeEventData(node) {
+				return _.data(node, eventHash) || _.data(node, eventHash, new EventData);
+			}
+
+			// Public
+
+			this.list = eventsList;
+			this.artificial = {};
+
+
+			this.add = function(node, event, method, once) {
 				getNodeEventData(node).set(event, method, once);
-				if(~eventNames.indexOf(event)) {
-					if(!node[handlerHash]) node[handlerHash] = function(e) {execute.call(node, e);};
-					addEvent(node, event, node[handlerHash]);
+				if(!node[handlerHash]) node[handlerHash] = function(e) {
+					getNodeEventData(node).call(node, fixEv(e));
+				};
+				try {addEvent(node, event, node[handlerHash]);} catch(err) {};
+				if(_this.artificial[event]) {
+					_this.add(node, _this.artificial[event].base, _this.artificial[event]['ini'], true);
 				}
-				else if(_.event.artificial[event]) {
-					_.bind(node, _.event.artificial[event].base, _.event.artificial[event].ini, true);
+			};
+
+			this.del = function(node, event, method) {
+				var rest = getNodeEventData(node);
+				if(rest.unset(event, method) === 0) {
+					try {delEvent(node, event, node[handlerHash]);} catch(err) {};
+					if(_.isEmptyObj(rest.events)) delete node[handlerHash];
+					if(_this.artificial[event]) {_this.del(node, _this.artificial[event].base, _this.artificial[event].ini);}
 				}
-			},
-			'del': function(node, event, method) {
-				var rest = getNodeEventData(node).unset(event, method);
-				if(rest === 0) {
-					if(~eventNames.indexOf(event)) {
-						delEvent(node, event, node[handlerHash]);
-					}
-					else if(_.event.artificial[event]) {
-						_.unbind(node, _.event.artificial[event].base, _.event.artificial[event].ini);
-					}
-					delete node[handlerHash];
-				}
-			},
-			'clear': function(node, event) {
-				getNodeEventData(node).clear(event);
-				delEvent(node, event, node[handlerHash]);
-			},
-			'create': function(name, base, condition) {
-				if(~eventNames.indexOf(name)) return;
+			};
+
+			this.clear = function(node, event) {
+				var rest = getNodeEventData(node);
+				rest.clear(event);
+				delEvent(node, event, node[handlerHash]);				if(_this.artificial[event]) {_this.del(node, _this.artificial[event].base, _this.artificial[event].ini);}
+				if(_.isEmptyObj(rest.events)) delete node[handlerHash];
+			};
+
+			this.create = function(name, base, condition) {
+				if(~eventsList.indexOf(name)) return;
+				var condition = condition || function() {return true;};
 				_.event.artificial[name] = {
 					'base': base,
 					'ini': function(e) {
 						if(condition(e, this)) {_.force(this, name, e);}
 					}
 				};
-			},
-			'fix': fixEv
-		};
+			};
 
-		_.force = function(node, eventType, e) {
-			if(node && eventType) {
-				var e = createEv(e);
-				if(eventType in eventNames) {
-					fireEv(node, eventType);
+			this.force = function(node, eventType, e) {
+				if(node && eventType) {
+					fireEv(node, eventType, e);
 				}
-				else {
-					var e = _.joinObj(e, {'type': eventType});
-					getNodeEventData(node).call(node, e);
-				}
-			}
-			else {throw Error('Call _.force function without required argument!');}
-		};
+				else {throw Error('Not enough arguments');}
+			};
+
+			this.fix = fixEv;
+
+		}
+
+		_.event = new EventController();
+
+		_.force = _.event.force;
 
 		_.bind = _.event.add;
 		_.unbind = _.event.del;
+
+		_.addEvent = addEvent;
+		_.delEvent = delEvent;
 
 	})();
 
@@ -1483,6 +1523,12 @@
 			});
 			return this;
 		},
+		'remove': function(node) {
+			this.ns.forEach(function(c) {
+				_.remove(c);
+			});
+			return this;
+		},
 		'html': function(html) {
 			if(html !== undefined) {
 				this.ns.forEach(function(c) {
@@ -1521,7 +1567,7 @@
 
 	;(function() {
 
-		var events = eventNames.copy();
+		var events = _.event.list.copy();
 
 		function parentCheck(e, parent) {
 			var related = e.relatedTarget;

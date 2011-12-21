@@ -305,6 +305,9 @@ RedJS довольно маленькая и быстрая библиотека
 
 Так же для выбророк есть укороченные варианты методов **встроенных ивентов**:
 
+* abort 
+* load 
+* unload 
 * click
 * dblclick
 * mousedown
@@ -316,6 +319,8 @@ RedJS довольно маленькая и быстрая библиотека
 * change
 * submit
 * keypress
+* keydown
+* keyup
 * mouseenter(кроссбраузерное)
 * mouseleave(кроссбраузерное)
 
