@@ -1034,6 +1034,8 @@
 						e.stopPropagation = stopPropagation;
 						e.charCode = e.keyCode;
 						e.preventDefault = preventDefault;
+						e.pageX = e.clientX + (html && html.scrollLeft || body && body.scrollLeft || 0) - (html.clientLeft || 0);
+						e.pageY = e.clientY + (html && html.scrollTop || body && body.scrollTop || 0) - (html.clientTop || 0);
 						return e;
 					}
 				}
