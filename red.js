@@ -1,10 +1,8 @@
 
-//	RedJS library v. 0.7						//
-//										//
-//	by: Archy Sharp 							//
-//	see https://github.com/homobel/redjs for details	//
+//	RedJS library v. 0.7
 
-'use strict';
+//	by: Archy Sharp
+//	see https://github.com/homobel/redjs for details
 
 /* --------------------######-------------------- Default obj's extension --- */
 
