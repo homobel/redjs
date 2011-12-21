@@ -1,10 +1,10 @@
 
-//	RedJS library v. 0.7
+//	RedJS library v. 0.8
 
 //	by: Archy Sharp
 //	see https://github.com/homobel/redjs for details
 
-/* --------------------######-------------------- Default obj's extension --- */
+/* --------------------######-------------------- Default obj's extension & --- */
 
 ;(function(A) {
 
@@ -132,26 +132,26 @@
 
 	S.isMail = function() {
 		return !!~this.search(/^([A-Za-z0-9_\-\.])+\@([A-Za-z0-9_\-\.])+\.([A-Za-z]{2,4})$/);
-	}
+	};
 
 	S.hasWord = function(word) {
 		if(this.search('\\b' + word + '\\b') == -1) {return false;}
 		return true;
-	}
+	};
 
 	S.camelCase = function() {
-		return this.replace(/-\D/g, function(match){
+		return this.replace(/-\D/g, function(match) {
 			return match.charAt(1).toUpperCase();
 		});
-	}
+	};
 
-	S.toInt = function(base){
+	S.toInt = function(base) {
 		return parseInt(this, base || 10);
-	}
+	};
 
-	S.toFloat = function(base){
+	S.toFloat = function(base) {
 		return parseFloat(this);
-	}
+	};
 
 	function tenBasedColor(string) {
 		if(string.length === 1) {string += string;}
@@ -170,18 +170,18 @@
 		else {
 			return this.match(/\d{1,3}/g).map(function(c) {return c.toInt().limit(0, 255);})
 		}
-	}
+	};
 
 	S.toRgb = function() {
 		return 'rgb('+this.getColors().join(',')+')';
-	},
+	};
 
 	S.toHex = function() {
 		return '#'+this.getColors().map(function(c) {
 			var color = c.toString(16);
 			return (color.length === 1)?0+color:color;
 		}).join('')
-	}
+	};
 
 })(String.prototype);
 
@@ -190,7 +190,7 @@
 	N.limit = function(a, b) {
 		var min = Math.min(a, b), max = Math.max(a, b);
 		return Math.min(max, Math.max(min, this));
-	}
+	};
 
 })(Number.prototype);
 
@@ -222,11 +222,11 @@
 				case 'string': return getType['string'];
 				case 'function': if(something.call) {return getType['function'];};
 				case 'object': if(something instanceof redjsCollection) {return  getType['redjs'];}
-						else if(something === null) {return getType['null'];}
-						else if(something instanceof Array) {return getType['array'];}
-						else if(something.nodeName && something.nodeType !== undefined) {return getType['node'];}
-						else if(something.length !== undefined) {return getType['nodelist'];}
-						else if(Object.prototype.toString.call(something) == '[object Object]') {return getType['object'];}
+							else if(something === null) {return getType['null'];}
+								else if(something instanceof Array) {return getType['array'];}
+									else if(something.nodeName && something.nodeType !== undefined) {return getType['node'];}
+										else if(something.length !== undefined) {return getType['nodelist'];}
+											else if(Object.prototype.toString.call(something) == '[object Object]') {return getType['object'];};
 			};
 			return getType['unknown'];
 		};
@@ -256,7 +256,7 @@
 		if(argType.is('array')) {return obj;}
 		else if(argType.is('nodelist')) {
 			var arr = [];
-			for(var i = 0; i < obj.length; i++) {
+			for(var i = 0, l = obj.length; i < l; i++) {
 				arr.push(obj[i]);
 			}
 			return arr;
@@ -264,7 +264,7 @@
 		else if(argType.is('object')) {
 			var arr = [];
 			for(var prop in obj) {
-				arr.push(obj[prop]);
+				if(obj.hasOwnProperty(prop)) arr.push(obj[prop]);
 			}
 			return arr;
 		}
@@ -349,18 +349,18 @@
 	_.easyModeOn = function() {
 		if(!window._) {window._ = _; return true;}
 		return false;
-	}
+	};
 
 	_.easyModeOff = function() {
 		if(window._ == _ && window._ === redjs) {delete window._; return true;}
 		return false;
-	}
+	};
 
 // debuging
 
 	_.props = function(obj){
 		var result = [];
-		for(var prop in obj) result.push(prop+' = '+obj[prop]);
+		for(var prop in obj) {result.push(prop+' = '+obj[prop]);}
 		console.log(result.join('\n'));
 	};
 
@@ -379,7 +379,7 @@
 
 		function hookCache(node) {
 			node[dataHash] = cacheNextVal++;
-			_.cache[node[dataHash]] = {};
+			_.dataCache[node[dataHash]] = {};
 		}
 
 		function data(node, name, val) {
@@ -387,17 +387,17 @@
 				var key = node[dataHash];
 				if(arguments.length == 2)  {
 					if(key !== undefined) {
-						return _.cache[key][name];
+						return _.dataCache[key][name];
 					}
 					return undefined;
 				}
 				else if(arguments.length === 3) {
 					if(val === null) {
-						delete _.cache[key][name];
+						delete _.dataCache[key][name];
 					}
 					else {
 						if(key === undefined) {hookCache(node);}
-						_.cache[node[dataHash]][name] = val;
+						_.dataCache[node[dataHash]][name] = val;
 						return val;
 					}
 				}
@@ -405,7 +405,7 @@
 		}
 
 		_.data = data;
-		_.cache = {};
+		_.dataCache = {};
 
 	})();
 
@@ -1289,7 +1289,7 @@
 		this.length = this.ns.length;
 	};
 
-	_.fn = {
+	_.proto = {
 		'constructor': _,
 		'include': function() {
 			for(var i = 0, l = arguments.length; i < l; i++) {
@@ -1315,7 +1315,7 @@
 		}
 	};
 
-	redjsCollection.prototype = _.fn;
+	redjsCollection.prototype = _.proto;
 
 	_.multi = function() { // multiselection
 		var M = _();
@@ -1325,12 +1325,12 @@
 		return M;
 	};
 
-// ########################---------- FN EXTENSION
+// ########################---------- PROTO EXTENSION
 
 	_.extend = function(obj) {
 		if(typeof obj == 'object') {
 			for(var m in obj) {
-				_.fn[m] = obj[m];
+				_.proto[m] = obj[m];
 				
 				/* debug edition
 				if(_.fn[m] === undefined) {
@@ -1613,4 +1613,10 @@
 	win.redjs = redjs;
 
 })(window);
+
+
+
+
+
+
 
