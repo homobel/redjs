@@ -17,7 +17,7 @@ RedJS довольно маленькая и быстрая библиотека
 
 ### Использовал материалы
 
-* http://http://www.w3.org/TR/
+* http://www.w3.org/TR/
 * http://javascript.ru
 * http://quirksmode.org
 * и другие...
