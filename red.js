@@ -1028,7 +1028,7 @@
 				}
 				else {
 					return function() {
-						var e = win.event;
+						var e = win.event, html = document.documentElement, body = document.body;
 						e.target = e.srcElement;
 						e.relaredTarget = (e.target==e.fromElemet)?e.toElement:e.fromElement;
 						e.stopPropagation = stopPropagation;
@@ -1086,7 +1086,7 @@
 
 				_this = this,
 
-				eventsList = ['abort', 'load', 'unload', 'click', 'dblclick', 'mousedown', 'mouseup', 'mouseover', 'mouseout', 'focus', 'blur', 'change', 'submit', 'keypress', 'keydown', 'keyup'],
+				eventsList = ['abort', 'load', 'unload', 'click', 'dblclick', 'mousedown', 'mouseup', 'mouseover', 'mouseout', 'mousemove', 'focus', 'blur', 'change', 'submit', 'keypress', 'keydown', 'keyup'],
 				eventsType = {
 					'UIEvents': ['DOMFocusIn', 'DOMFocusOut', 'DOMActivate'],
 					'MouseEvents': ['click', 'dblclick', 'mousedown', 'mouseup', 'mouseover', 'mouseout', 'mousemove'],
