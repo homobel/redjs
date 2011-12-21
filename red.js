@@ -1,8 +1,10 @@
 
-//	RedJS library v. 0.7
+//	RedJS library v. 0.7						//
+//										//
+//	by: Archy Sharp 							//
+//	see https://github.com/homobel/redjs for details	//
 
-//	by: Archy Sharp
-//	see https://github.com/homobel/redjs for details
+'use strict';
 
 /* --------------------######-------------------- Default obj's extension --- */
 
@@ -997,7 +999,7 @@
 
 // --------- EVENTS
 
-	var eventNames = ['click', 'dblclick', 'mousedown', 'mouseup', 'mouseover', 'mouseout', 'focus', 'blur', 'change', 'submit', 'keypress'];
+	var eventNames = ['abort', 'load', 'click', 'dblclick', 'mousedown', 'mouseup', 'mouseover', 'mouseout', 'focus', 'blur', 'change', 'submit', 'keypress', 'keydown', 'keyup'];
 
 	if(_.browser.msie) {
 		eventNames.push('mouseenter', 'mouseleave');
@@ -1500,7 +1502,7 @@
 				});
 			}
 			else {
-				if(nodeType.is('string')) {node = _(_('+div').html(node).ns[0].childNodes);}
+				if(nodeType.is('string')) {node = _('+div').html(node).children();}
 				if(node instanceof redjsCollection) {
 					this.each(function(c) {
 						node.each(function(cc) {
