@@ -1107,12 +1107,23 @@
 						};
 					} else {
 						return function(node, type, e) {
-							var e = e || {}, event = document.createEvent(getEventType(type, e));
-							event.initEvent(type, true, true, win, 1, e.sceenX, e.screenY, e.clientX, e.clientY, e.ctrlKey, e.altKey, e.shiftKey, e.metaKey, e.button, e.relatedTarget);
+
+							var etype = getEventType(type, e),
+									e = e || {},
+									event = document.createEvent(etype);
+
+							switch(etype) {
+								case('MouseEvents'): event.initMouseEvent(type, true, true, win, 1, e.sceenX, e.screenY, e.clientX, e.clientY, e.ctrlKey, e.altKey, e.shiftKey, e.metaKey, e.button, e.relatedTarget); break;
+								case('HTMLEvents'): event.initEvent(type, true, true); break;
+								case('UIEvents'): event.initUIEvent(type, true, true, win, 1); break;
+								case('KeyboardEvent'): event.initKeyboardEvent(type, true, true, win, e.ctrlKey, e.altKey, e.shiftKey, e.metaKey, e.keyCode, e.charCode); break;
+								case('MutationEvent'): event.initEvent(type, true, true, e.relatedNode, e.prevValue, e.newValue, e.attrName, e.attrChange); break;
+							}
 							node.dispatchEvent(event);
 						};
 					}
 				})();
+
 
 			if(_.browser.msie || _.browser.opera) {
 				eventsList.push('mouseenter', 'mouseleave');
@@ -1122,11 +1133,11 @@
 			// Inner
 
 			function getEventType(type, e) {
-				var type = e.type || type;
+				if(e && e.type) type = e.type;
 				for(var prop in eventsType) {
 					if(~eventsType[prop].indexOf(type)) return prop;
 				}
-				return 'Event';
+				return 'HTMLEvents';
 			}
 	
 			function execute(e) {
