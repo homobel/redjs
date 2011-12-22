@@ -6,44 +6,36 @@
 
 /* --------------------######-------------------- Default obj's extension & --- */
 
-;(function(A) {
+(function(A) {
 
 	// Back compatibility js 1.6
 
 	if(!A.indexOf) {
 
 		A.indexOf = function(object) {
-			for (var i = 0, l = this.length; i < l; i++) {
-				if (i in this && this[i] === object) {
-					return i;
-				}
+			for(var i = 0, l = this.length; i < l; i++) {
+				if(i in this && this[i] === object) return i;
 			}
 			return -1;
 		};
 
 		A.lastIndexOf = function(object) {
 			for (var i = this.length - 1; i >= 0; i--) {
-				if (i in this && this[i] === object) {
-					return i;
-				}
+				if (i in this && this[i] === object) return i;
 			}
 			return -1;
 		};
 
 		A.forEach = function(fn, thisObj) {
 			for (var i = 0, l = this.length; i < l; i++) {
-				if (i in this) {
-					fn.call(thisObj, this[i], i, this);
-				}
+				if (i in this) fn.call(thisObj, this[i], i, this);
 			}
 		};
 
 		A.map = function(fn, thisObj) {
 			var result = new Array(this.length);
 			for (var i = 0, l = this.length; i < l; i++) {
-				if (i in this) {
-					result[i] = fn.call(thisObj, this[i], i, this);
-				}
+				if (i in this) result[i] = fn.call(thisObj, this[i], i, this);
 			}
 			return result;
 		};
@@ -51,27 +43,21 @@
 		A.filter = function(fn, thisObj) {
 			var result = [];
 			for (var i = 0, l = this.length; i < l; i++) {
-				if (i in this && fn.call(thisObj, this[i], i, this)) {
-					result.push(this[i]);
-				}
+				if (i in this && fn.call(thisObj, this[i], i, this)) result.push(this[i]);
 			}
 			return result;
 		};
 
 		A.every = function(fn, thisObj) {
 			for (var i = 0, l = this.length; i < l; i++) {
-				if (i in this && !fn.call(thisObj, this[i], i, this)) {
-					return false;
-				}
+				if (i in this && !fn.call(thisObj, this[i], i, this)) return false;
 			}
 			return true;
 		};
 
 		A.some = function(fn, thisObj) {
 			for (var i = 0, l = this.length; i < l; i++) {
-				if (i in this && fn.call(thisObj, this[i], i, this)) {
-					return true;
-				}
+				if (i in this && fn.call(thisObj, this[i], i, this)) return true;
 			}
 			return false;
 		};
@@ -82,9 +68,7 @@
 
 	A.forEachInvert = function(fn, thisObj) {
 		for (var i = this.length; i-- ;) {
-			if (i in this) {
-				fn.call(thisObj, this[i], i, this);
-			}
+			if (i in this) fn.call(thisObj, this[i], i, this);
 		}
 	};
 
@@ -117,18 +101,14 @@
 
 	A.toggle = function(n) {
 		var index = this.indexOf(n);
-		if(index == -1) {
-			this.push(n);
-		}
-		else {
-			this.del(index);
-		}
+		if(index == -1) this.push(n);
+		else this.del(index);
 		return index;
 	};
 
 })(Array.prototype);
 
-;(function(S) {
+(function(S) {
 
 	S.isMail = function() {
 		return !!~this.search(/^([A-Za-z0-9_\-\.])+\@([A-Za-z0-9_\-\.])+\.([A-Za-z]{2,4})$/);
@@ -160,12 +140,8 @@
 
 	S.getColors = function() {
 		if(this.charAt(0) == '#') {
-			if(this.length == 4) {
-				return this.match(/\w/g).map(tenBasedColor);
-			}
-			else {
-				return this.match(/\w{2}/g).map(tenBasedColor);
-			}
+			if(this.length == 4) return this.match(/\w/g).map(tenBasedColor);
+			else return this.match(/\w{2}/g).map(tenBasedColor);
 		}
 		else {
 			return this.match(/\d{1,3}/g).map(function(c) {return c.toInt().limit(0, 255);})
@@ -185,7 +161,7 @@
 
 })(String.prototype);
 
-;(function(N) {
+(function(N) {
 
 	N.limit = function(a, b) {
 		var min = Math.min(a, b), max = Math.max(a, b);
@@ -196,58 +172,67 @@
 
 /* --------------------######-------------------- FRAMEWORK --- */
 
-;(function(win) {
+(function(win) {
 
 	var	_ = function(name, node) {return new redjsCollection(name, node);},
 		redjs = _,
-		ielt9 = '\v' == 'v',
 
 		hash = ('redjs'+Math.random()).replace('0.', ''),
 
 		doc = document,
-		win = window,
-		type;
 
-// ########################---------- TYPE DETERMINANT
+		type = _.type,
+		ielt9 = _.ielt9;
 
-	;(function() {
 
-		function Type(n) {this.val = n};
+	function redjsCollection(name, context) {
+		this.ns = getNodes(name, context);
+		this.length = this.ns.length;
+	}
 
-		function getType(something) {
-			switch(typeof something) {
-				case 'undefined': return getType['undefined'];
-				case 'boolean': return getType['boolean'];
-				case 'number': return getType['number'];
-				case 'string': return getType['string'];
-				case 'function': if(something.call) {return getType['function'];};
-				case 'object': if(something instanceof redjsCollection) {return  getType['redjs'];}
-							else if(something === null) {return getType['null'];}
-								else if(something instanceof Array) {return getType['array'];}
-									else if(something.nodeName && something.nodeType !== undefined) {return getType['node'];}
-										else if(something.length !== undefined) {return getType['nodelist'];}
-											else if(Object.prototype.toString.call(something) == '[object Object]') {return getType['object'];};
-			};
-			return getType['unknown'];
-		};
-
-		Type.prototype = {
-			'toString': function() {return types[this.val];},
-			'is': function(typeStr) {
-				return types[this.val] == typeStr;
+	_.proto = {
+		'constructor': _,
+		'include': function() {
+			for(var i = 0, l = arguments.length; i < l; i++) {
+				var nodes = getNodes(arguments[i]);
+				nodes.forEach(function(c) {
+					if(!~this.ns.indexOf(c)) {
+						this.ns.push(c)
+					}
+				}, this);
+				this.length = this.ns.length;
 			}
-		};
+			return this;
+		},
+		'exclude': function() {
+			for(var i = 0, l = arguments.length; i < l; i++) {
+				var nodes = getNodes(arguments[i]);
+				this.ns = this.ns.filter(function(c) {
+					return !~nodes.indexOf(c);
+				}, this);
+				this.length = this.ns.length;
+			}
+			return this;
+		}
+	};
 
-	  	var	types = ['undefined', 'boolean', 'number', 'string', 'function', 'node', 'nodelist', 'array', 'object', 'null', 'redjs', 'unknown'];
+	redjsCollection.prototype = _.proto;
 
-		types.forEach(function(c, i) {
-			this[c] = new Type(i);
-			this[i] = c;
-		}, getType);
+	_.multi = function() {
+		var M = _();
+		for(var i = 0, l = arguments.length; i<l; i++) {
+			M.include(arguments[i]);
+		}
+		return M;
+	};
 
-		type = _.type = getType;
-
-	})();
+	_.extend = function(obj) {
+		if(typeof obj == 'object') {
+			for(var m in obj) {
+				_.proto[m] = obj[m];
+			}
+		}
+	};
 
 // ########################---------- INNER FUNCTIONS
 
@@ -275,15 +260,80 @@
 		else {
 			return [obj];
 		}
-	};
+	}
 
-// ########################---------- UTILITES
+	function getArrWithElemById(name) {
+		return toArraySimple(_.id(name));
+	}
 
-// browser
+	function getArrWithElemsByTag(name, node) {
+		return toArraySimple(_.tag(name, node));
+	}
 
-	_.browser = (function() {
+	function getArrWithElemsByClass(name, node) {
+		return toArraySimple(_.className(name, node));
+	}
 
-		var agent = {}, nav = navigator.userAgent.toLowerCase();
+	function getNodes(name, node) {
+		if(name === undefined || name === '') {return [];}
+		var	inContext = !!node,
+			firstType = type(name);
+
+		if(inContext) {
+			var secondType = type(name);
+			if(secondType.is('string')) {
+				node = getNodes(node);
+			}
+			else node = toArraySimple(node);
+		}
+		if(firstType.is('string')) {
+			var firstChar = name.charAt(0);
+			if(firstChar == '#') {
+				return getArrWithElemById(name.substr(1, name.length));
+			}
+			else if(firstChar == '.') {
+				var className = name.substr(1, name.length);
+				if(inContext) {
+					for(var nodes = [], i = 0, l = node.length; i<l; i++) {
+						nodes = nodes.concat(getArrWithElemsByClass(className, node[i]));
+					}
+					return nodes;
+
+				}
+				else {
+					return getArrWithElemsByClass(className);
+				}
+			}
+			else if(firstChar == '+') {
+				return [_.create(name.substr(1, name.length))];
+			}
+			else {
+				if(inContext) {
+					for(var nodes = [], i = 0, l = node.length; i<l; i++) {
+						nodes = nodes.concat(getArrWithElemsByTag(name, node[i]));
+					}
+					return nodes;
+
+				}
+				else {
+					return getArrWithElemsByTag(name);
+				}
+			}
+		}
+		else if (firstType.is('redjs')) {
+			return name.ns;
+		}
+		else {
+			return toArraySimple(name);
+		}
+	}
+
+// ########################---------- BROWSER
+
+	(function() {
+
+		var	agent = {},
+			nav = navigator.userAgent.toLowerCase();
 
 		if(~nav.search(/firefox/)) {
 			agent.firefox = true;
@@ -301,16 +351,95 @@
 			agent.safari = true;
 		}
 
-		return agent;
+		_.browser = agent;
+		_.ielt9 = '\v' == 'v';
 
 	})();
 
-	_.ielt9 = ielt9;
+// ########################---------- TYPE DETERMINANT
+
+	(function() {
+
+		function Type(n) {this.val = n}
+
+		function getType(something) {
+			switch(typeof something) {
+				case 'undefined': return getType['undefined'];
+				case 'boolean': return getType['boolean'];
+				case 'number': return getType['number'];
+				case 'string': return getType['string'];
+				case 'function': if(something.call) {return getType['function'];}
+				case 'object': if(something instanceof redjsCollection) {return  getType['redjs'];}
+							else if(something === null) {return getType['null'];}
+								else if(something instanceof Array) {return getType['array'];}
+									else if(something.nodeName && something.nodeType !== undefined) {return getType['node'];}
+										else if(something.length !== undefined) {return getType['nodelist'];}
+											else if(Object.prototype.toString.call(something) == '[object Object]') {return getType['object'];}
+			}
+			return getType['unknown'];
+		}
+
+		Type.prototype = {
+			'toString': function() {return types[this.val];},
+			'is': function(typeStr) {
+				return types[this.val] == typeStr;
+			}
+		};
+
+	  	var	types = ['undefined', 'boolean', 'number', 'string', 'function', 'node', 'nodelist', 'array', 'object', 'null', 'redjs', 'unknown'];
+
+		types.forEach(function(c, i) {
+			this[c] = new Type(i);
+			this[i] = c;
+		}, getType);
+
+		type = _.type = getType;
+
+	})();
+
+// ########################---------- UTILITES
 
 	_.hash = hash;
 
+
+	_.id = function(name) {return doc.getElementById(name);};
+
+	_.tag = function(name, node) {return (node || doc).getElementsByTagName(name);};
+
+	_.className = (function() {
+		if(document.getElementsByClassName) {
+			return function(name, node) {
+				return (node || document).getElementsByClassName(name);
+			}
+		}
+		else {
+			return function(name, node) {
+				if(name) {
+					var	nodes = _.tag('*', node),
+						classArray = name.split(/\s+/),
+						classes = classArray.length,
+						result = [], i,l,j;
+
+					for(i = 0, l = nodes.length; i < l; i++) {
+						for(j = 0; j < classes; j++) {
+							if(nodes[i].className.hasWord(classArray[j])) {
+								result.push(nodes[i]);
+								break;
+							}
+						}
+					}
+					return result;
+				}
+				else {throw Error('Not enough arguments');}
+			}
+		}
+	})();
+
+
 	_.isEmptyObj = function(obj) {
-		for(var prop in obj) {			if(obj.hasOwnProperty(prop)) return false;		}
+		for(var prop in obj) {
+			if(obj.hasOwnProperty(prop)) return false;
+		}
 		return true;
 	};
 
@@ -358,7 +487,7 @@
 
 // debuging
 
-	_.props = function(obj){
+	_.props = function(obj) {
 		var result = [];
 		for(var prop in obj) {result.push(prop+' = '+obj[prop]);}
 		console.log(result.join('\n'));
@@ -372,7 +501,7 @@
 
 // ########################---------- DATA
 
-	;(function() {
+	(function() {
 
 		var	cacheNextVal = 0,
 			dataHash = 'data___'+hash;
@@ -407,11 +536,29 @@
 		_.data = data;
 		_.dataCache = {};
 
+		_.extend({
+
+			'data': function(name, val) {
+				if(name !== undefined && name !== '') {
+					if(arguments.length == 2) {
+						this.ns.forEach(function(c) {
+							_.data(c, name, val);
+						});
+					}
+					else {
+						if(this.ns[0]) return _.data(this.ns[0], name);
+					}
+				}
+				return this;
+			}
+
+		});
+
 	})();
 
 // ########################---------- DEFFERED
 
-	;(function() {
+	(function() {
 
 		var	slice = Array.prototype.slice,
 			_FuncList = {
@@ -530,7 +677,7 @@
 
 // ########################---------- AJAX
 
-	;(function() {
+	(function() {
 
 		_.aj = {};
 
@@ -590,12 +737,13 @@
 			params = new ajaxParams(params);
 
 			var	d = _.deferred(),
-				xmlreq = xmlreq || _.aj.obj(),
 				resptimer,
 				timeout;
 
-			function checkStatus() {  
-				if (xmlreq.readyState == 4 && xmlreq.status == 200) { 
+			xmlreq = xmlreq || _.aj.obj();
+
+			function checkStatus() {
+				if (xmlreq.readyState == 4 && xmlreq.status == 200) {
 					clearInterval(timeout);
 					clearInterval(resptimer);
 					var resp = (params.accept == 'xml')?xmlreq.responseXML:xmlreq.responseText;
@@ -633,10 +781,10 @@
 			d.error(function() {
 				xmlreq.abort();
 			});
-	
+
 			return d;
 		};
-	
+
 		_.getScript = function(url, flag) {
 			var script =  _.aj.query({'url': url, 'accept': 'script'});
 			if(!flag) {
@@ -649,82 +797,15 @@
 
 	})();
 
-// ########################----------- COOKIES
+// ########################---------- CSS
 
-	;(function() { 
-
-		function getCookie(name) {
-			if(name && new RegExp('(?:^|;\\s*)' + name + '=([^;]*)').test(document.cookie)) {
-				return decodeURIComponent(RegExp.$1);
-			}
-		}
-
-		function setCookie(name, value, days, attrs) {
-			var cookie = [name+'='+encodeURIComponent(value || '')];
-			if(days) cookie.push('max-age='+days*86400);
-			if(attrs) for(var prop in attrs) {
-				cookie.push(prop+'='+attrs[prop]);
-			};
-			document.cookie = cookie.join('; ');
-		}
-
-		_.cookie = function(name, value, days, attr) {
-			if(arguments.length < 2) {
-				return getCookie(name);
-			}
-			else {
-				setCookie(name, value, days, attr);
-			}
-		};
-
-	})();
-
-// ########################---------- CROSSBROWSER METHODS WORKING WITH SINGLE NODE
-
-// --------- SELECTORS
-
-	_.id = function(name) {return doc.getElementById(name);};
-
-	_.tag = function(name, node) {return (node || doc).getElementsByTagName(name);};
-
-	_.className = (function() {
-		if(document.getElementsByClassName) {
-			return function(name, node) {
-				return (node || document).getElementsByClassName(name);
-			}
-		}
-		else {
-			return function(name, node) {
-				if(name) {
-					var	nodes = _.tag('*', node),
-						classArray = name.split(/\s+/),
-						classes = classArray.length,
-						result = [], i,l,j;
-		
-					for(i = 0, l = nodes.length; i < l; i++) {
-						for(j = 0; j < classes; j++) {
-							if(nodes[i].className.hasWord(classArray[j])) {
-								result.push(nodes[i]);
-								break;
-							}
-						}
-					}
-					return result;
-				}
-				else {throw Error('Not enough arguments');}
-			}
-		}
-	})();
-
-// --------- CSS
-
-	;(function() {
+	(function() {
 
 		_.gstyle = (function() {
 			if (!win.getComputedStyle) {
 				return function(node, rule) {return node.currentStyle[rule];}
 			} else {
-				return function(node, rule) {return win.getComputedStyle(node, null)[rule];} 
+				return function(node, rule) {return win.getComputedStyle(node, null)[rule];}
 			}
 		})();
 
@@ -802,206 +883,240 @@
 		};
 
 		_.height = function(node, padding, border, margin) {
-
 			var height = (padding)?node.offsetHeight:_.gstyle(node, height).toInt();
-
 			if(border) {
-
 				var	borderTopWidth = _.css(node, 'borderTopWidth'),
 					borderBottomWidth = _.css(node, 'borderBottomWidth');
-
 				borderTopWidth = isNaN(borderTopWidth)?0:borderTopWidth.toInt();
 				borderBottomWidth = isNaN(borderBottomWidth)?0:borderBottomWidth.toInt();
-
 				height += borderTopWidth+borderBottomWidth;
 			}
 			margin = (margin)?_.gstyle(node, 'marginTop').toInt()+_.gstyle(node, 'marginBottom').toInt():0;
 			return height+margin+border;
 		};
 
-	})();
 
-// --------- ANIMATION
+		_.extend({
 
-	;(function() {
-
-		var	animationDelay = 16,
-			fn = {
-				'linear': function(x) {
-					return x;
-				},
-				'swing': function(x) {
-					return (-Math.cos(x*Math.PI)/2)+0.5;
-				}
-			},
-			animationData = 'animation___'+hash;
-
-		function animationStatus(node, type, val) {
-			var animData = _.data(node, animationData) || _.data(node, animationData, {});
-			if(val !== undefined) {animData[type] = val; return;}
-			return animData[type];
-		}
-
-		_.animate = function(node, type, terminal, time, callback, fnName) {
-
-			function changeCss() {
-				var	now = Date.now() - start,
-					progress = now / time,
-					result = ((terminal - current)*easing(progress)+current).limit(current, terminal);
-
-				_.css(node, type, result+unit);
-
-				if(progress < 1) {
-					node[timerName] = setTimeout(changeCss, animationDelay);
+			'css': function(name, value) {
+				if(value !== undefined || name instanceof Object) {
+					this.ns.forEach(function(c) {
+						_.css(c, name, value);
+					});
 				}
 				else {
-					_.css(node, type, terminal);
-					animationStatus(node, type, '');
-					if(callback) {callback.call(node);}
+					if(this.ns[0]) return _.css(this.ns[0], name);
 				}
+				return this;
+			},
+			'height': function(padding, border, margin) {
+				if(this.ns[0]) return _.height(this.ns[0], padding, border, margin);
 			}
 
-			var	currentAnimStatus = animationStatus(node, type),
-				currCss = _.css(node, type).toString(),
-				current = (type == 'opacity')?currCss.toFloat():currCss.toInt(),
-				diff = current-terminal,
-				animStatus = (diff<0)?0:1,
-				timerName = 'animation_'+type+'___'+hash;
-
-			if(currentAnimStatus !== animStatus && diff !== 0) {
-				if(currentAnimStatus !== undefined) {clearTimeout(node[timerName]);}
-
-				var	unit = currCss.match(/[a-z]+/),
-					easing = fn[fnName] || fn['swing'],
-					start = Date.now();
-
-				unit = (unit)?unit:'';
-				animationStatus(node, type, animStatus);
-
-				node[timerName] = setTimeout(changeCss, animationDelay);
-			}
-
-		};
-
-		_.hide = function(node, time, callback) {
-			if(time) {
-				_.animate(node, 'opacity', 0, time, function() {
-					node.style.display = 'none';
-					if(callback) callback();
-				});
-			}
-			else {
-				if (!node.display) {
-					var display = _.gstyle(node, 'display');
-					if(display != 'none') {node.display = display}
-					else {node.display = 'block';}
-				}
-				node.style.display = 'none';
-			}
-		};
-
-		_.show = function(node, time, callback) {
-			if(time) {
-				if(_.gstyle(node, 'display') == 'none') {
-					_.css(node, 'opacity', 0);
-					node.style.display = 'block';
-				}
-				_.animate(node, 'opacity', 1, time, function() {
-					if(callback) callback();
-				});
-			}
-			else {
-				node.style.display = node.display || 'block';
-			}
-		};
+		});
 
 	})();
 
-// --------- DOM MANIPULATION
+// ########################---------- DOM MANIPULATION
 
-	_.create = function(tagName, attr) {
-		var node = doc.createElement(tagName);
-		if(attr) {
-			for(var prop in attr) {
-				node.setAttribute(prop, attr[prop]);
+	(function() {
+
+		_.create = function(tagName, attr) {
+			var node = doc.createElement(tagName);
+			if(attr) for(var prop in attr) node.setAttribute(prop, attr[prop]);
+			return node;
+		};
+
+		_.wrap = function(node, wrapper, attr) {
+			if(wrapper.hasWord) wrapper = _.create(wrapper, attr);
+			node.parentNode.insertBefore(wrapper, node);
+			wrapper.appendChild(node);
+		};
+
+		_.wrapInner = function(node, wrapper, attr) {
+			if(wrapper.hasWord) wrapper = _.create(wrapper, attr);
+			for(var n = node.childNodes; n[0]; wrapper.appendChild(n[0])) {}
+			node.appendChild(wrapper);
+		};
+
+		_.children = function(node, tagName) {
+			var c = node.childNodes, C = [];
+			if(tagName) {tagName = tagName.toUpperCase();}
+			for(var i = 0; i < c.length; i++) {
+				if(tagName && c[i].nodeName != tagName) {continue;}
+				if(c[i].nodeType === 1) {C.push(c[i]);}
 			}
-		}
-		return node;
-	};
+			return C;
+		};
 
-	_.wrap = function(node, wrapper, attr) {
-		if(wrapper.hasWord) {
-			wrapper = _.create(wrapper, attr);
-		}
-		node.parentNode.insertBefore(wrapper, node);
-		wrapper.appendChild(node);
-	};
-
-	_.children = function(node, tagName) {
-		var c = node.childNodes, C = [];
-		if(tagName) {tagName = tagName.toUpperCase();}
-		for(var i = 0; i < c.length; i++) {
-			if(tagName && c[i].nodeName != tagName) {continue;}
-			if(c[i].nodeType === 1) {C.push(c[i]);}
-		}
-		return C;
-	};
-
-	_.firstChild = function(node, child) {
-		if(child === undefined) {
-			var child = node.firstChild;
-			while(child.nodeType !== 1 && child.nextSibling) {
-				child = child.nextSibling;
+		_.firstChild = function(node, child) {
+			if(child === undefined) {
+				child = node.firstChild;
+				while(child.nodeType !== 1 && child.nextSibling) {
+					child = child.nextSibling;
+				}
+				if(child.nodeType === 1) return child;
+				return undefined;
 			}
-			if(child.nodeType === 1) return child;
-			return undefined;
-		}
-		else {
-			if(typeof child == 'string') child= _.create(child);
-			node.insertBefore(child, node.firstChild);
-			return child;
-		}
-	};
+			else {
+				if(typeof child == 'string') child= _.create(child);
+				node.insertBefore(child, node.firstChild);
+				return child;
+			}
+		};
 
-	_.getNodeText = function(node) {
-		return node.text || node.textContent || '';
-	};
+		_.getNodeText = function(node) {
+			return node.text || node.textContent || '';
+		};
 
-	_.remove = function(node) {
-		node.parentNode.removeChild(node);
-	};
+		_.remove = function(node) {
+			node.parentNode.removeChild(node);
+		};
 
-// --------- CLASS MANIPULATION
 
-	_.addClass = function(node, name) {
-		if(!node.className.hasWord(name)) {
-			if(!node.className) {node.className = name;}
-			else {node.className += ' ' + name;}
-		}
-	};
+	// --------- CLASS MANIPULATION
 
-	_.delClass = function(node, name) {
-		node.className = node.className.replace(new RegExp('[ ]*\\b' + name +'\\b'), '');
-	};
+		_.addClass = function(node, name) {
+			if(!node.className.hasWord(name)) {
+				if(!node.className) {node.className = name;}
+				else {node.className += ' ' + name;}
+			}
+		};
 
-	_.hasClass = function(node, name) {
-		return node.className.hasWord(name);
-	};
+		_.delClass = function(node, name) {
+			node.className = node.className.replace(new RegExp('[ ]*\\b' + name +'\\b'), '');
+		};
 
-	_.toggleClass = function(node, name) {
-		if(node.className.hasWord(name)) {
-			_.delClass(node, name);
-			return false;
-		}
-		else {
-			_.addClass(node, name);
-			return true;
-		}
-	};
+		_.hasClass = function(node, name) {
+			return node.className.hasWord(name);
+		};
 
-// --------- EVENTS
+		_.toggleClass = function(node, name) {
+			if(node.className.hasWord(name)) {
+				_.delClass(node, name);
+				return false;
+			}
+			else {
+				_.addClass(node, name);
+				return true;
+			}
+		};
 
-	;(function() {
+		_.extend({
+
+			'children': function(tagName) {
+				var M = _();
+				this.ns.forEach(function(c) {
+					M.include(_.children(c, tagName));
+				});
+				return M;
+			},
+			'parent': function() {
+				var M = _();
+				this.ns.forEach(function(c) {
+					M.include(c.parentNode);
+				});
+				return M;
+			},
+			'firstChild': function(child) {
+			    	var M = _();
+				if(child === undefined) {
+					this.ns.forEach(function(c) {
+						M.include(_.firstChild(c));
+					});
+					return M;
+				}
+				else {
+					this.each(function(c) {
+						M.include(_.firstChild(c, child));
+					});
+					return M;
+				}
+			},
+			'wrap': function(wrapper) {
+				this.ns.forEach(function(c) {
+					_.wrap(c, wrapper);
+				});
+				return this;
+			},
+			'remove': function(node) {
+				this.ns.forEach(function(c) {
+					_.remove(c);
+				});
+				return this;
+			},
+			'html': function(html) {
+				if(html !== undefined) {
+					this.ns.forEach(function(c) {
+						c.innerHTML = html;
+					});
+				}
+				else {
+					if(this.ns[0]) return this.ns[0].innerHTML;
+				}
+				return this;
+			},
+			'append': function(node) {
+				var nodeType = type(node);
+				if(nodeType.is('node')) {
+					this.each(function(c) {
+						c.appendChild(node);
+					});
+				}
+				else {
+					if(nodeType.is('string')) {node = _('+div').html(node).children();}
+					if(node instanceof redjsCollection) {
+						this.each(function(c) {
+							node.each(function(cc) {
+								c.appendChild(cc);
+							});
+						});
+						return node;
+					}
+				}
+				return _(node);
+			},
+
+		// attr manipulation
+
+			'attr': function(name, val) {
+				if(arguments.length === 2) {
+					this.ns.forEach(function(c) {
+						c.setAttribute(name, val);
+					});
+				}
+				else {
+					if(this.ns[0]) return this.ns[0].getAttribute(name);
+				}
+				return this;
+			},
+			'addClass': function(name) {
+				this.ns.forEach(function(c) {_.addClass(c, name);});
+				return this;
+			},
+			'toggleClass': function(name) {
+				this.ns.forEach(function(c) {_.toggleClass(c, name);});
+				return this;
+			},
+			'delClass': function(name) {
+				this.ns.forEach(function(c) {
+					_.delClass(c, name);
+				});
+				return this;
+			},
+			'hasClass': function(name) {
+				if(this.ns[0]) return _.hasClass(this.ns[0], name);
+				else return false;
+			}
+
+		});
+
+	})();
+
+
+// ########################----------- EVENTS
+
+	(function() {
 
 		var	addEvent = (function() {
 				if(win.addEventListener) {
@@ -1109,8 +1224,9 @@
 						return function(node, type, e) {
 
 							var etype = getEventType(type, e),
-									e = e || {},
 									event = document.createEvent(etype);
+
+							e = e || {};
 
 							switch(etype) {
 								case('MouseEvents'): event.initMouseEvent(type, true, true, win, 1, e.sceenX, e.screenY, e.clientX, e.clientY, e.ctrlKey, e.altKey, e.shiftKey, e.metaKey, e.button, e.relatedTarget); break;
@@ -1139,7 +1255,7 @@
 				}
 				return 'HTMLEvents';
 			}
-	
+
 			function execute(e) {
 				e = fixEv(e);
 				getNodeEventData(this).call(this, e);
@@ -1160,7 +1276,7 @@
 				if(!node[handlerHash]) node[handlerHash] = function(e) {
 					getNodeEventData(node).call(node, fixEv(e));
 				};
-				try {addEvent(node, event, node[handlerHash]);} catch(err) {};
+				try {addEvent(node, event, node[handlerHash]);} catch(err) {}
 				if(_this.artificial[event]) {
 					_this.add(node, _this.artificial[event].base, _this.artificial[event]['ini'], true);
 				}
@@ -1169,7 +1285,7 @@
 			this.del = function(node, event, method) {
 				var rest = getNodeEventData(node);
 				if(rest.unset(event, method) === 0) {
-					try {delEvent(node, event, node[handlerHash]);} catch(err) {};
+					try {delEvent(node, event, node[handlerHash]);} catch(err) {}
 					if(_.isEmptyObj(rest.events)) delete node[handlerHash];
 					if(_this.artificial[event]) {_this.del(node, _this.artificial[event].base, _this.artificial[event].ini);}
 				}
@@ -1178,13 +1294,14 @@
 			this.clear = function(node, event) {
 				var rest = getNodeEventData(node);
 				rest.clear(event);
-				delEvent(node, event, node[handlerHash]);				if(_this.artificial[event]) {_this.del(node, _this.artificial[event].base, _this.artificial[event].ini);}
+				delEvent(node, event, node[handlerHash]);
+				if(_this.artificial[event]) {_this.del(node, _this.artificial[event].base, _this.artificial[event].ini);}
 				if(_.isEmptyObj(rest.events)) delete node[handlerHash];
 			};
 
 			this.create = function(name, base, condition) {
 				if(~eventsList.indexOf(name)) return;
-				var condition = condition || function() {return true;};
+				condition = condition || function() {return true;};
 				_.event.artificial[name] = {
 					'base': base,
 					'ini': function(e) {
@@ -1214,135 +1331,158 @@
 		_.addEvent = addEvent;
 		_.delEvent = delEvent;
 
+		_.extend({
+
+			'bind': function(event, action) {
+				this.ns.forEach(function(c) {
+					_.bind(c, event, action);
+				});
+				return this;
+			},
+			'unbind': function(event, action) {
+				this.ns.forEach(function(c) {
+					_.unbind(c, event, action);
+				});
+				return this;
+			},
+			'force': function(event_type) {
+				this.ns.forEach(function(c) {
+					_.force(c, event_type);
+				});
+				return this;
+			},
+			'clearEvent': function(ev) {
+				this.ns.forEach(function(c) {
+					_.event.clear(c, ev);
+				});
+				return this;
+			}
+
+		});
+
 	})();
 
-// ########################---------- RED JS COLLECTION
+// ########################----------- ANIMATION
 
-	function getArrWithElemById(name) {
-		return toArraySimple(_.id(name));
-	}
+	(function() {
 
-	function getArrWithElemsByTag(name, node) {
-		return toArraySimple(_.tag(name, node));
-	}
+		var	animationDelay = 16,
+			fn = {
+				'linear': function(x) {
+					return x;
+				},
+				'swing': function(x) {
+					return (-Math.cos(x*Math.PI)/2)+0.5;
+				}
+			},
+			animationData = 'animation___'+hash;
 
-	function getArrWithElemsByClass(name, node) {
-		return toArraySimple(_.className(name, node));;
-	}
-
-	function getNodes(name, node) { // return array with matched elements
-		if(name === undefined || name === '') {return [];}
-		var	inContext = !!node,
-			firstType = type(name);
-
-		if(inContext) {
-			var secondType = type(name);
-			if(secondType.is('string')) {
-				node = getNodes(node);
-			}
-			else node = toArraySimple(node);
+		function animationStatus(node, type, val) {
+			var animData = _.data(node, animationData) || _.data(node, animationData, {});
+			if(val !== undefined) {animData[type] = val; return;}
+			return animData[type];
 		}
-		if(firstType.is('string')) {
-			var firstChar = name.charAt(0);
-			if(firstChar == '#') {
-				return getArrWithElemById(name.substr(1, name.length));
-			}
-			else if(firstChar == '.') {
-				var className = name.substr(1, name.length);
-				if(inContext) {
-					for(var nodes = [], i = 0, l = node.length; i<l; i++) {
-						nodes = nodes.concat(getArrWithElemsByClass(className, node[i]));
-					}
-					return nodes;
-					
+
+		_.animate = function(node, type, terminal, time, callback, fnName) {
+
+			function changeCss() {
+				var	now = Date.now() - start,
+					progress = now / time,
+					result = ((terminal - current)*easing(progress)+current).limit(current, terminal);
+
+				_.css(node, type, result+unit);
+
+				if(progress < 1) {
+					node[timerName] = setTimeout(changeCss, animationDelay);
 				}
 				else {
-					return getArrWithElemsByClass(className);
+					_.css(node, type, terminal);
+					animationStatus(node, type, '');
+					if(callback) {callback.call(node);}
 				}
 			}
-			else if(firstChar == '+') {
-				return [_.create(name.substr(1, name.length))];
+
+			var	currentAnimStatus = animationStatus(node, type),
+				currCss = _.css(node, type).toString(),
+				current = (type == 'opacity')?currCss.toFloat():currCss.toInt(),
+				diff = current-terminal,
+				animStatus = (diff<0)?0:1,
+				timerName = 'animation_'+type+'___'+hash;
+
+			if(currentAnimStatus !== animStatus && diff !== 0) {
+				if(currentAnimStatus !== undefined) {clearTimeout(node[timerName]);}
+
+				var	unit = currCss.match(/[a-z]+/),
+					easing = fn[fnName] || fn['swing'],
+					start = Date.now();
+
+				unit = (unit)?unit:'';
+				animationStatus(node, type, animStatus);
+
+				node[timerName] = setTimeout(changeCss, animationDelay);
+			}
+
+		};
+
+		_.hide = function(node, time, callback) {
+			if(time) {
+				_.animate(node, 'opacity', 0, time, function() {
+					node.style.display = 'none';
+					if(callback) callback();
+				});
 			}
 			else {
-				if(inContext) {
-					for(var nodes = [], i = 0, l = node.length; i<l; i++) {
-						nodes = nodes.concat(getArrWithElemsByTag(name, node[i]));
-					}
-					return nodes;
-					
+				if (!node.display) {
+					var display = _.gstyle(node, 'display');
+					if(display != 'none') {node.display = display}
+					else {node.display = 'block';}
 				}
-				else {
-					return getArrWithElemsByTag(name);
+				node.style.display = 'none';
+			}
+		};
+
+		_.show = function(node, time, callback) {
+			if(time) {
+				if(_.gstyle(node, 'display') == 'none') {
+					_.css(node, 'opacity', 0);
+					node.style.display = 'block';
 				}
+				_.animate(node, 'opacity', 1, time, function() {
+					if(callback) callback();
+				});
 			}
-		}
-		else if (firstType.is('redjs')) {
-			return name.ns;
-		}
-		else {
-			return toArraySimple(name);
-		}
-	}
-
-	function redjsCollection(name, context) {
-		this.ns = getNodes(name, context);
-		this.length = this.ns.length;
-	};
-
-	_.proto = {
-		'constructor': _,
-		'include': function() {
-			for(var i = 0, l = arguments.length; i < l; i++) {
-				var nodes = getNodes(arguments[i]);
-				nodes.forEach(function(c) {
-					if(!~this.ns.indexOf(c)) {
-						this.ns.push(c)
-					}
-				}, this);
-				this.length = this.ns.length;
+			else {
+				node.style.display = node.display || 'block';
 			}
-			return this;
-		},
-		'exclude': function() {
-			for(var i = 0, l = arguments.length; i < l; i++) {
-				var nodes = getNodes(arguments[i]);
-				this.ns = this.ns.filter(function(c) {
-					return !~nodes.indexOf(c);
-				}, this);
-				this.length = this.ns.length;
+		};
+
+
+		_.extend({
+
+			'hide': function(time, callback) {
+				this.ns.forEach(function(c) {
+					_.hide(c, time, callback);
+				});
+				return this;
+			},
+			'show': function(time, callback) {
+				this.ns.forEach(function(c) {
+					_.show(c, time, callback);
+				});
+				return this;
+			},
+			'animate': function(type, terminal, time, fnName, callback) {
+				this.ns.forEach(function(c) {
+					_.animate(c, type, terminal, time, fnName, callback);
+				});
+				return this;
 			}
-			return this;
-		}
-	};
 
-	redjsCollection.prototype = _.proto;
+		});
 
-	_.multi = function() { // multiselection
-		var M = _();
-		for(var i = 0, l = arguments.length; i<l; i++) {
-			M.include(arguments[i]);
-		}
-		return M;
-	};
+	})();
 
 // ########################---------- PROTO EXTENSION
-
-	_.extend = function(obj) {
-		if(typeof obj == 'object') {
-			for(var m in obj) {
-				_.proto[m] = obj[m];
-				
-				/* debug edition
-				if(_.fn[m] === undefined) {
-					_.fn[m] = obj[m];
-				}
-				else {
-					throw new Error('Object extension: object has the same property!');
-				}
-				*/
-			}
-		}
-	};
 
 	_.extend({
 
@@ -1351,23 +1491,7 @@
 			return this;
 		},
 
-// data manipulation
-
-		'data': function(name, val) {
-			if(name !== undefined && name !== '') {
-				if(arguments.length == 2) {
-					this.ns.forEach(function(c) {
-						_.data(c, name, val);
-					});
-				}
-				else {
-					if(this.ns[0]) return _.data(this.ns[0], name);
-				}
-			}
-			return this;
-		},
-
-// collection manipulation
+	// collection manipulation
 
 		'eq': function(n) {
 			if(this.ns[n]) return _(this.ns[n]);
@@ -1379,39 +1503,10 @@
 		'last': function() {
 			return this.eq(this.length-1);
 		},
-		'children': function(tagName) {
-			var M = _();
-			this.ns.forEach(function(c) {
-				M.include(_.children(c, tagName));
-			});
-			return M;
-		},
-		'parent': function() {
-			var M = _();
-			this.ns.forEach(function(c) {
-				M.include(c.parentNode);
-			});
-			return M;
-		},
-		'firstChild': function(child) {
-			if(child === undefined) {
-				var M = _();
-				this.ns.forEach(function(c) {
-					M.include(_.firstChild(c));
-				});
-				return M;
-			}
-			else {
-				var M = _();
-				this.each(function(c) {
-					M.include(_.firstChild(c, child));
-				});
-				return M;
-			}
-		},
 		'filter': function(func) {
 			if(this.length > 0 && func.call) {
-				var M = this.ns.filter(function(c) {						return func.call(c);
+				var M = this.ns.filter(function(c) {
+						return func.call(c);
 					return true;
 				});
 				return _(M);
@@ -1422,98 +1517,7 @@
 			return _(selector, this);
 		},
 
-// appearance manipulation
 
-		'hide': function(time, callback) {
-			this.ns.forEach(function(c) {
-				_.hide(c, time, callback);
-			});
-			return this;
-		},
-		'show': function(time, callback) {
-			this.ns.forEach(function(c) {
-				_.show(c, time, callback);
-			});
-			return this;
-		},
-		'animate': function(type, terminal, time, fnName, callback) {
-			this.ns.forEach(function(c) {
-				_.animate(c, type, terminal, time, fnName, callback);
-			});
-			return this;
-		},
-
-// events
-
-		'bind': function(event, action) {
-			this.ns.forEach(function(c) {
-				_.bind(c, event, action);
-			});
-			return this;
-		},
-		'unbind': function(event, action) {
-			this.ns.forEach(function(c) {
-				_.unbind(c, event, action);
-			});
-			return this;
-		},
-		'force': function(event_type) {
-			this.ns.forEach(function(c) {
-				_.force(c, event_type);
-			});
-			return this;
-		},
-		'clearEvent': function(ev) {
-			this.ns.forEach(function(c) {
-				_.event.clear(c, ev);
-			});
-			return this;
-		},
-
-// attr manipulation
-
-		'attr': function(name, val) {
-			if(arguments.length === 2) {
-				this.ns.forEach(function(c) {
-					c.setAttribute(name, val);
-				});
-			}
-			else {
-				if(this.ns[0]) return this.ns[0].getAttribute(name);
-			}
-			return this;
-		},
-		'addClass': function(name) {
-			this.ns.forEach(function(c) {_.addClass(c, name);});
-			return this;
-		},
-		'toggleClass': function(name) {
-			this.ns.forEach(function(c) {_.toggleClass(c, name);});
-			return this;
-		},
-		'delClass': function(name) {
-			this.ns.forEach(function(c) {
-				_.delClass(c, name);
-			});
-			return this;
-		},
-		'hasClass': function(name) {
-			if(this.ns[0]) return _.hasClass(this.ns[0], name);
-		},
-		'css': function(name, value) {
-			if(value !== undefined || name instanceof Object) {
-				this.ns.forEach(function(c) {
-					_.css(c, name, value);
-				});
-			}
-			else {
-				if(this.ns[0]) return _.css(this.ns[0], name);
-			}
-			return this;
-		},
-		'height': function(padding, border, margin) {
-			if(this.ns[0]) return _.height(this.ns[0], padding, border, margin);
-		},
 		'val': function(value) {
 			if(value !== undefined) {
 				this.ns.forEach(function(c) {
@@ -1524,59 +1528,43 @@
 			else {
 				if(this.ns[0]) return this.ns[0].value;
 			}
-		},
-
-// dom manipulation
-
-		'wrap': function(wrapper) {
-			this.ns.forEach(function(c) {
-				_.wrap(c, wrapper);
-			});
-			return this;
-		},
-		'remove': function(node) {
-			this.ns.forEach(function(c) {
-				_.remove(c);
-			});
-			return this;
-		},
-		'html': function(html) {
-			if(html !== undefined) {
-				this.ns.forEach(function(c) {
-					c.innerHTML = html;
-				});
-			}
-			else {
-				if(this.ns[0]) return this.ns[0].innerHTML;
-			}
-			return this;
-		},
-		'append': function(node) {
-			var nodeType = type(node);
-			if(nodeType.is('node')) {
-				this.each(function(c) {
-					c.appendChild(node);
-				});
-			}
-			else {
-				if(nodeType.is('string')) {node = _('+div').html(node).children();}
-				if(node instanceof redjsCollection) {
-					this.each(function(c) {
-						node.each(function(cc) {
-							c.appendChild(cc);
-						});
-					});
-					return node;
-				}
-			}
-			return _(node);
 		}
 
 	});
 
+// ########################----------- COOKIES
+
+	(function() {
+
+		function getCookie(name) {
+			if(name && new RegExp('(?:^|;\\s*)' + name + '=([^;]*)').test(document.cookie)) {
+				return decodeURIComponent(RegExp.$1);
+			}
+		}
+
+		function setCookie(name, value, days, attrs) {
+			var cookie = [name+'='+encodeURIComponent(value || '')];
+			if(days) cookie.push('max-age='+days*86400);
+			if(attrs) for(var prop in attrs) {
+				cookie.push(prop+'='+attrs[prop]);
+			}
+			document.cookie = cookie.join('; ');
+		}
+
+		_.cookie = function(name, value, days, attr) {
+			if(arguments.length < 2) {
+				return getCookie(name);
+			}
+			else {
+				setCookie(name, value, days, attr);
+			}
+		};
+
+	})();
+
 // --------- EVENTS ADDING
 
-	;(function() {
+	(function() {
 
 		var events = _.event.list.copy();
 
@@ -1613,8 +1601,6 @@
 	win.redjs = redjs;
 
 })(window);
-
-
 
 
 
