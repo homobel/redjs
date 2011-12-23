@@ -1399,7 +1399,7 @@
 				_.event.artificial[params.name] = _.joinObj({
 					'ini': function(e) {
 						if(params.condition.call(this, e)) {
-							console.log(_.force(this, params.name, e, {'cancelBubble': true}));
+							_.force(this, params.name, e, {'cancelBubble': true});
 						}
 					}
 				}, params);
