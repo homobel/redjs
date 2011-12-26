@@ -1,0 +1,5 @@
+
+//	RedJS library v. 0.8
+
+//	by: Archy Sharp
+//	see https://github.com/homobel/redjs for details
