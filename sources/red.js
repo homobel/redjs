@@ -16,35 +16,13 @@
 		doc = document,
 		ielt9 = _.ielt9;
 
+	_.hash = hash;
+	_.proto = {};
+
 	function redjsCollection(name, context) {
 		this.ns = getNodes(name, context);
 		this.length = this.ns.length;
 	}
-
-	_.proto = {
-		'include': function() {
-			for(var i = 0, l = arguments.length; i < l; i++) {
-				var nodes = getNodes(arguments[i]);
-				nodes.forEach(function(c) {
-					if(!~this.ns.indexOf(c)) {
-						this.ns.push(c)
-					}
-				}, this);
-				this.length = this.ns.length;
-			}
-			return this;
-		},
-		'exclude': function() {
-			for(var i = 0, l = arguments.length; i < l; i++) {
-				var nodes = getNodes(arguments[i]);
-				this.ns = this.ns.filter(function(c) {
-					return !~nodes.indexOf(c);
-				}, this);
-				this.length = this.ns.length;
-			}
-			return this;
-		}
-	};
 
 	redjsCollection.prototype = _.proto;
 
@@ -64,7 +42,11 @@
 		}
 	};
 
-// ########################---------- INNER FUNCTIONS
+### require helpers/browser
+### require helpers/type
+### require helpers/object
+
+// ########################---------- UTILITES
 
 	function toArraySimple(obj) {
 		var argType = type(obj);
@@ -92,133 +74,6 @@
 		}
 	}
 
-	function getArrWithElemById(name) {
-		return toArraySimple(_.id(name));
-	}
-
-	function getArrWithElemsByTag(name, node) {
-		return toArraySimple(_.tag(name, node));
-	}
-
-	function getArrWithElemsByClass(name, node) {
-		return toArraySimple(_.className(name, node));
-	}
-
-	function getNodes(name, node) {
-		if(name === undefined || name === '') {return [];}
-		var	inContext = !!node,
-			firstType = type(name);
-
-		if(inContext) {
-			var secondType = type(name);
-			if(secondType.is('string')) {
-				node = getNodes(node);
-			}
-			else node = toArraySimple(node);
-		}
-		if(firstType.is('string')) {
-			var firstChar = name.charAt(0);
-			if(firstChar == '#') {
-				return getArrWithElemById(name.substr(1));
-			}
-			else if(firstChar == '.') {
-				var className = name.substr(1);
-				if(inContext) {
-					for(var nodes = [], i = 0, l = node.length; i<l; i++) {
-						nodes = nodes.concat(getArrWithElemsByClass(className, node[i]));
-					}
-					return nodes;
-
-				}
-				else {
-					return getArrWithElemsByClass(className);
-				}
-			}
-			else if(firstChar == '+') {
-				return [_.create(name.substr(1))];
-			}
-			else {
-				if(inContext) {
-					for(var nodes = [], i = 0, l = node.length; i<l; i++) {
-						nodes = nodes.concat(getArrWithElemsByTag(name, node[i]));
-					}
-					return nodes;
-
-				}
-				else {
-					return getArrWithElemsByTag(name);
-				}
-			}
-		}
-		else if (firstType.is('redjs')) {
-			return name.ns;
-		}
-		else {
-			return toArraySimple(name);
-		}
-	}
-
-
-### require helpers/browser
-
-### require helpers/type
-
-// ########################---------- SELLECTORS
-
-	_.id = function(name) {return doc.getElementById(name);};
-
-	_.tag = function(name, node) {return (node || doc).getElementsByTagName(name);};
-
-	_.className = (function() {
-		if(document.getElementsByClassName) {
-			return function(name, node) {
-				return (node || document).getElementsByClassName(name);
-			}
-		}
-		else {
-			return function(name, node) {
-				if(name) {
-					var	nodes = _.tag('*', node),
-						classArray = name.split(/\s+/),
-						classes = classArray.length,
-						result = [], i,l,j;
-
-					for(i = 0, l = nodes.length; i < l; i++) {
-						for(j = 0; j < classes; j++) {
-							if(nodes[i].className.hasWord(classArray[j])) {
-								result.push(nodes[i]);
-								break;
-							}
-						}
-					}
-					return result;
-				}
-				else {throw Error('Not enough arguments');}
-			}
-		}
-	})();
-
-// ########################---------- UTILITES
-
-	_.hash = hash;
-
-	_.isEmptyObj = function(obj) {
-		for(var prop in obj) {
-			if(obj.hasOwnProperty(prop)) return false;
-		}
-		return true;
-	};
-
-	_.joinObj = function() {
-		var O = new Object();
-		for(var i = 0; i<arguments.length; i++) {
-			if(arguments[i]) {
-				for(var p in arguments[i]) if(arguments[i].hasOwnProperty(p)) O[p] = arguments[i][p];
-			}
-		}
-		return O;
-	};
-
 	_.toArray = function() {
 		var l = arguments.length;
 		if(l > 1) {
@@ -233,41 +88,11 @@
 		}
 	};
 
-// compatibility
-
-	_.easyModeOn = function() {
-		if(!window._) {window._ = _; return true;}
-		return false;
-	};
-
-	_.easyModeOff = function() {
-		if(window._ == _ && window._ === redjs) {delete window._; return true;}
-		return false;
-	};
-
-// debuging
-
-	_.props = function(obj) {
-		var result = [];
-		for(var prop in obj) {result.push(prop+' = '+obj[prop]);}
-		console.log(result.join('\n'));
-	};
-
-	_.time = function(func) {
-		var t = Date.now();
-		func();
-		return Date.now()-t;
-	};
-
-
+### require selectors
 ### require data
-
 ### require callbacks/deferred
-
 ### require css
-
 ### require dom
-
 ### require events
 
 // ########################---------- PROTO EXTENSION
@@ -279,7 +104,28 @@
 			return this;
 		},
 
-	// collection manipulation
+		'include': function() {
+			for(var i = 0, l = arguments.length; i < l; i++) {
+				var nodes = getNodes(arguments[i]);
+				nodes.forEach(function(c) {
+					if(!~this.ns.indexOf(c)) {
+						this.ns.push(c)
+					}
+				}, this);
+				this.length = this.ns.length;
+			}
+			return this;
+		},
+		'exclude': function() {
+			for(var i = 0, l = arguments.length; i < l; i++) {
+				var nodes = getNodes(arguments[i]);
+				this.ns = this.ns.filter(function(c) {
+					return !~nodes.indexOf(c);
+				}, this);
+				this.length = this.ns.length;
+			}
+			return this;
+		},
 
 		'eq': function(n) {
 			if(this.ns[n]) return _(this.ns[n]);
@@ -303,26 +149,26 @@
 		},
 		'find': function(selector) {
 			return _(selector, this);
-		},
-
-
-		'val': function(value) {
-			if(value !== undefined) {
-				this.ns.forEach(function(c) {
-					c.value = value;
-				});
-				return this;
-			}
-			else {
-				if(this.ns[0]) return this.ns[0].value;
-			}
 		}
 
 	});
 
 
-### include modules
+### require forms
 
+// compatibility
+
+	_.easyModeOn = function() {
+		if(!win._) {win._ = _; return true;}
+		return false;
+	};
+
+	_.easyModeOff = function() {
+		if(win._ == _ && win._ === redjs) {delete win._; return true;}
+		return false;
+	};
+
+### include modules
 
 // --------- GLOBALS
 
