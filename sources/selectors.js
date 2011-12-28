@@ -19,12 +19,11 @@
 						result = [], i,l,j;
 
 					for(i = 0, l = nodes.length; i < l; i++) {
+						var trigger = true;
 						for(j = 0; j < classes; j++) {
-							if(nodes[i].className.hasWord(classArray[j])) {
-								result.push(nodes[i]);
-								break;
-							}
+							if(!nodes[i].className.hasWord(classArray[j])) trigger = false;
 						}
+						if(trigger) result.push(nodes[i]);
 					}
 					return result;
 				}
