@@ -14,7 +14,7 @@
 					return this;
 				},
 				'add': function(func) {
-					if(func.call) {
+					if(func && func.call) {
 						this.list.push(func);
 					}
 					return this;

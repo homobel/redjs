@@ -101,22 +101,29 @@
 				},
 
 				createEvent = (function() {
-					if(ielt9) return function(type, e, params) {
-						e = _.joinObj(e, params);
-						if(type) e.type = type;
-						return doc.createEventObject(e);
-					};
-					else return function(type, e, params) {
-						e = _.joinObj(e, params);
-						var	etype = getEventType(type, e),
-							event = document.createEvent(etype);
-						if(etype === 'MouseEvents') event.initMouseEvent(type, !e.cancelBubble, !!e.cancelable, win, 1, e.sceenX, e.screenY, e.clientX, e.clientY, e.ctrlKey, e.altKey, e.shiftKey, e.metaKey, e.button, e.relatedTarget);
-						else if(etype === 'UIEvents') event.initUIEvent(type, !e.cancelBubble, !!e.cancelable, win, 1);
-						else if(etype === 'KeyboardEvent') event.initKeyboardEvent(type, !e.cancelBubble, !!e.cancelable, win, e.ctrlKey, e.altKey, e.shiftKey, e.metaKey, e.keyCode, e.charCode);
-						else if(etype === 'MutationEvent') event.initEvent(type, !e.cancelBubble, !!e.cancelable, e.relatedNode, e.prevValue, e.newValue, e.attrName, e.attrChange);
-						else event.initEvent(type, !e.cancelBubble, !!e.cancelable); // HTMLEvents
-						return event;
-					};
+					if(ielt9) {
+						return function(type, e, params) {
+							var e = doc.createEventObject(e);
+							if(params && !params.type) params.type = type;
+							for(var prop in params) {
+								e[prop] = params[prop];
+							}
+							return e;
+						};
+					}
+					else {
+						return function(type, e, params) {
+							e = _.joinObj(e, params);
+							var	etype = getEventType(type, e),
+								event = document.createEvent(etype);
+							if(etype === 'MouseEvents') event.initMouseEvent(type, !e.cancelBubble, !!e.cancelable, win, 1, e.sceenX, e.screenY, e.clientX, e.clientY, e.ctrlKey, e.altKey, e.shiftKey, e.metaKey, e.button, e.relatedTarget);
+							else if(etype === 'UIEvents') event.initUIEvent(type, !e.cancelBubble, !!e.cancelable, win, 1);
+							else if(etype === 'KeyboardEvent') event.initKeyboardEvent(type, !e.cancelBubble, !!e.cancelable, win, e.ctrlKey, e.altKey, e.shiftKey, e.metaKey, e.keyCode, e.charCode);
+							else if(etype === 'MutationEvent') event.initEvent(type, !e.cancelBubble, !!e.cancelable, e.relatedNode, e.prevValue, e.newValue, e.attrName, e.attrChange);
+							else event.initEvent(type, !e.cancelBubble, !!e.cancelable); // HTMLEvents
+							return event;
+						};
+					}
 				})(),
 
 				fireEvent = (function() {
@@ -292,7 +299,7 @@
 			var related = event.relatedTarget, resp, parent = contains(this, related);
 			if(related == null) return true;
 			if(!related) return false;
-			resp = (related !== this && related.tagName !== doc.documentElement && related.prefix !== 'xul' && !parent);
+			resp = (related !== this && related.tagName !== docElem && related.prefix !== 'xul' && !parent);
 			if(!resp) event.stopPropagation();
 			return resp;
 		}

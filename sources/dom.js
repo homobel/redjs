@@ -3,12 +3,9 @@
 
 	(function() {
 
-		var	childrenDefault = {
-				node: true
-			},
-			nodeTypeDefault = [1];
+		var	nodeTypeDefault = [1];
 
-		function childrenRulesParser(rule) {
+		function simpleAttrParser(rule) {
 			var res = {};
 			rule = rule.split(/(?=[#.])/).forEach(function(c) {
 				var first = c.charAt(0);
@@ -44,7 +41,7 @@
 		};
 
 		_.children = function(node, rule, nodeTypes) {
-			rule = childrenRulesParser(rule || '');
+			if(typeof rule == 'string') rule = simpleAttrParser(rule || '');
 			nodeTypes = nodeTypes || nodeTypeDefault;
 			var c = node.childNodes, C = [];
 			mainIterator: for(var i = 0, l = c.length; i < l; i++) {
@@ -53,6 +50,15 @@
 				C.push(c[i]);
 			}
 			return C;
+		};
+
+		_.parent = function(node, rule) {
+			if(typeof rule == 'string') rule = simpleAttrParser(rule || '');
+			mainIterator: for(var parent = node; parent = parent.parentNode;) {
+				for(var prop in rule) if(parent[prop] !== rule[prop]) continue mainIterator;
+				return parent;
+			}
+			return null;
 		};
 
 		_.clone = function(node, param) {
@@ -144,17 +150,19 @@
 
 		_.extend({
 
-			'children': function(tagName) {
+			'children': function(rule) {
 				var M = _();
+				if(typeof rule == 'string') rule = simpleAttrParser(rule || '');
 				this.ns.forEach(function(c) {
-					M.include(_.children(c, tagName));
+					M.include(_.children(c, rule));
 				});
 				return M;
 			},
-			'parent': function() {
+			'parent': function(rule) {
 				var M = _();
+				if(typeof rule == 'string') rule = simpleAttrParser(rule || '');
 				this.ns.forEach(function(c) {
-					M.include(c.parentNode);
+					M.include(_.parent(c, rule));
 				});
 				return M;
 			},
@@ -229,7 +237,7 @@
 					});
 				}
 				else {
-					if(this.ns[0]) return this.ns[0].getAttribute(name);
+					if(this.ns[0]) return this.ns[0].getAttribute(name, 2);
 				}
 				return this;
 			},

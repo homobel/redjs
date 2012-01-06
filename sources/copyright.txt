@@ -3,3 +3,5 @@
 
 //	by: Archy Sharp
 //	see https://github.com/homobel/redjs for details
+
+//	Licensed under the MIT license.

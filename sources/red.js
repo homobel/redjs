@@ -11,10 +11,10 @@
 
 	var	redjs = function(name, node) {return new redjsCollection(name, node);},
 		_ = redjs,
-		hash = ('redjs'+Math.random()).replace('0.', ''),
+		hash = ('redjs'+Math.random()).replace('.', ''),
 		type,
 		doc = document,
-		ielt9 = _.ielt9;
+		docElem = doc.documentElement;
 
 	_.hash = hash;
 	_.proto = {};
@@ -46,9 +46,7 @@
 ### require helpers/type
 ### require helpers/object
 ### require helpers/array
-
 ### require selectors
-
 ### require data
 ### require callbacks/deferred
 ### require css

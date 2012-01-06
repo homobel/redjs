@@ -15,7 +15,7 @@
 		return parseFloat(this);
 	};
 
-	N.random = function() {
+	N.rand = function() {
 		return (this*Math.random()).toInt();
 	}
 

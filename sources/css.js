@@ -4,11 +4,12 @@
 	(function() {
 
 		_.gstyle = (function() {
-			if (!win.getComputedStyle) {
-				return function(node, rule) {return node.currentStyle[rule];}
-			} else {
-				return function(node, rule) {return win.getComputedStyle(node, null)[rule];}
-			}
+			if (!win.getComputedStyle) return function(node, rule) {
+				return node.currentStyle[rule];
+			};
+			else return function(node, rule) {
+				return win.getComputedStyle(node, null)[rule];
+			};
 		})();
 
 		var exceptions = {
@@ -85,13 +86,23 @@
 		};
 
 		_.height = function(node, padding, border, margin) {
-			var height = (padding)?node.offsetHeight:_.gstyle(node, height).toInt();
+			var height;
+			if(padding) {
+				height = node.offsetHeight;
+			}
+			else {
+				height = _.gstyle(node, 'height').toInt();
+				if(isNaN(height)) height = 0;
+			}
 			if(border) {
 				var	borderTopWidth = _.css(node, 'borderTopWidth'),
 					borderBottomWidth = _.css(node, 'borderBottomWidth');
 				borderTopWidth = isNaN(borderTopWidth)?0:borderTopWidth.toInt();
 				borderBottomWidth = isNaN(borderBottomWidth)?0:borderBottomWidth.toInt();
 				height += borderTopWidth+borderBottomWidth;
+			}
+			else {
+				border = 0;
 			}
 			margin = (margin)?_.gstyle(node, 'marginTop').toInt()+_.gstyle(node, 'marginBottom').toInt():0;
 			return height+margin+border;

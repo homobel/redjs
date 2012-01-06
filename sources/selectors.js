@@ -1,50 +1,58 @@
+
 // ########################---------- SELLECTORS
 
-	_.id = function(name) {return doc.getElementById(name);};
+	_.id = function(name) {
+		return doc.getElementById(name);
+	};
 
-	_.tag = function(name, node) {return (node || doc).getElementsByTagName(name);};
+	_.tag = function(name, node) {
+		return (node || doc).getElementsByTagName(name);
+	};
 
 	_.className = (function() {
-		if(document.getElementsByClassName) {
-			return function(name, node) {
-				return (node || document).getElementsByClassName(name);
-			}
+		if(document.getElementsByClassName) return function(name, node) {
+			return (node || document).getElementsByClassName(name);
 		}
-		else {
-			return function(name, node) {
-				if(name) {
-					var	nodes = _.tag('*', node),
-						classArray = name.split(/\s+/),
-						classes = classArray.length,
-						result = [], i,l,j;
+		else return function(name, node) {
+			if(name) {
 
-					for(i = 0, l = nodes.length; i < l; i++) {
-						var trigger = true;
-						for(j = 0; j < classes; j++) {
-							if(!nodes[i].className.hasWord(classArray[j])) trigger = false;
-						}
-						if(trigger) result.push(nodes[i]);
+				var	nodes = _.tag('*', node),
+					classArray = name.split(/\s+/),
+					classes = classArray.length,
+					result = [], i,l,j;
+
+				for(i = 0, l = nodes.length; i < l; i++) {
+					var trigger = true;
+					for(j = 0; j < classes; j++) {
+						if(!nodes[i].className.hasWord(classArray[j])) trigger = false;
 					}
-					return result;
+					if(trigger) result.push(nodes[i]);
 				}
-				else {throw Error('Not enough arguments');}
+				return result;
 			}
+			else {throw Error('Not enough arguments');}
 		}
 	})();
 
+
+	// converting to array methods
+	
 	function getArrWithElemById(name) {
 		return toArraySimple(_.id(name));
 	}
-
+	
 	function getArrWithElemsByTag(name, node) {
 		return toArraySimple(_.tag(name, node));
 	}
-
+	
 	function getArrWithElemsByClass(name, node) {
 		return toArraySimple(_.className(name, node));
 	}
 
+
+
 	function getNodes(name, node) {
+
 		if(name === undefined || name === '') {return [];}
 		var	inContext = !!node,
 			firstType = type(name);
@@ -97,3 +105,5 @@
 			return toArraySimple(name);
 		}
 	}
+
+
