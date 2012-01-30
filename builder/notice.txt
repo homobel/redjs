@@ -1,0 +1,5 @@
+﻿
+   RedJS Builder
+   Copyright © 2012 Archy Sharp
+
+   This product includes Microsoft Ajax Minifier library - http://ajaxmin.codeplex.com/

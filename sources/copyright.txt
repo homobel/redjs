@@ -1,7 +1,7 @@
 
-//	RedJS library v. 0.8
+//~	RedJS (C) 2012 Archy Sharp
+//~	https://github.com/homobel/redjs
+//~	Dual licensed under the MIT and GPL v2 licenses:
+//~	- http://www.opensource.org/licenses/mit-license.php
+//~	- http://www.gnu.org/licenses/gpl-2.0.html
 
-//	by: Archy Sharp
-//	see https://github.com/homobel/redjs for details
-
-//	Licensed under the MIT license.
