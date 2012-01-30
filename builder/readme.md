@@ -24,7 +24,7 @@ There are two get statements (without square brackets):
 Relative path considers current file's directory.
 
 If file doesn't exist require statement cause building error (project won't be build).
-Include statement behave as require, if checked.
+Include statement behaves as require, if checked.
 
 If relative path is path to the directory, it interprets as include statement for all files in directory.
 
