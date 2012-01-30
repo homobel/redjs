@@ -34,7 +34,7 @@ Include statement behave as require, if checked.
 
 If relative path is path to the directory, it interprets as get statement for all files in directory.
 
-*Another things*
+*Other things*
 
 	//~ <draft>
 		alert('Omg');
