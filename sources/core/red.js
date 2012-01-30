@@ -138,7 +138,7 @@
 	};
 
 //~ require: compatibility/json2.js
-//~ require: ../internal-modules
+//~ include: ../internal-modules
 
 // ----------------------------- Global variables initiation
 
@@ -158,4 +158,4 @@
 
 })(window);
 
-//~ require: ../external-modules
+//~ include: ../external-modules
