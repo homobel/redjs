@@ -6,7 +6,7 @@ It can be file or directory and actually means another node in treeView.
 
 ###File syntax
 
-Statements is solid (space number can vary).
+Statements are solid (space number can vary).
 
 
 *Header*
