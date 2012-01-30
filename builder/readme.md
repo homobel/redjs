@@ -1,15 +1,9 @@
 ﻿
-##Implementation
-
-Builder uses source point abstraction.
-It can be file or directory and actually means another node in treeView.
-
 ###File syntax
 
 Statements are solid (space number can vary).
 
-
-*Header*
+**Header**
 
 Desired part of project. It looks like (without square brackets):
 
@@ -18,9 +12,9 @@ Desired part of project. It looks like (without square brackets):
 	//~	Info: [...]
 	//~ </component>
 
-It improves data performance in treeView. Header responsibilities may be extended in future.
+It improves data performance in treeView controller. Header responsibilities may be added in future.
 
-*Points inclusion*
+**Points inclusion**
 
 There are two get statements (without square brackets):
 
@@ -32,7 +26,7 @@ Relative path considers current file's directory.
 If file doesn't exist require statement cause building error (project won't be build).
 Include statement behave as require, if checked.
 
-If relative path is path to the directory, it interprets as get statement for all files in directory.
+If relative path is path to the directory, it interprets as include statement for all files in directory.
 
 *Other things*
 
