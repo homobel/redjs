@@ -216,7 +216,11 @@
 				return this;
 			},
 			'append': function(node) {
-				if(this.ns[0]) return _(_.append(node, this.ns[0]).filter(function(c) {return c.nodeType === 1;}));
+				if(this.ns[0]) {
+					return _(_.append(node, this.ns[0]).filter(function(c) {
+						return c.nodeType === 1;
+					}));
+				}
 				return this;
 			},
 			'appendTo': function(node) {
@@ -224,8 +228,13 @@
 				return this;
 			},
 
-			'before': function() {
-				if(this.ns[0]) return _(_.before(node, this.ns[0]).filter(function(c) {return c.nodeType === 1;}));
+			'before': function(node) {
+				if(this.ns[0]) {
+					return _(_.before(node, this.ns[0]).filter(function(c) {
+						return c.nodeType === 1;
+					}));
+				}
+				return this;
 			},
 			'beforeTo': function(node) {
 				_.before(this.ns, node);
