@@ -5,9 +5,30 @@
 //~ </component>
 
 
-	_.id = function(name) {
-		return doc.getElementById(name);
+	_.id = function(name, node) {
+		if(node === undefined) {
+			return doc.getElementById(name);
+		}
+		else {
+			return getNodeByIdAndParent(name, node);
+		}
 	};
+
+	function getNodeByIdAndParent(name, node) {
+		var children = _.children(node);
+		for(var i = 0, l = children.length; i < l; i++) {
+			if(children[i].id == name) {
+				return children[i];
+			}
+			else {
+				var res = getNodeByIdAndParent(name, children[i]);
+				if(res !== null) {
+					return res;
+				}
+			}
+		}
+		return null;
+	}
 
 	_.tag = function(name, node) {
 		return (node || doc).getElementsByTagName(name);
@@ -41,8 +62,8 @@
 
 	// converting to array methods
 	
-	function getArrWithElemById(name) {
-		return toArraySimple(_.id(name));
+	function getArrWithElemById(name, node) {
+		return toArraySimple(_.id(name, node));
 	}
 	
 	function getArrWithElemsByTag(name, node) {
@@ -73,7 +94,16 @@
 		if(firstType.is('string')) {
 			var firstChar = name.charAt(0);
 			if(firstChar == '#') {
-				return getArrWithElemById(name.substr(1));
+				var idName = name.substr(1);
+				if(inContext) {
+					for(var nodes = [], i = 0, l = node.length; i<l; i++) {
+						nodes = nodes.concat(getArrWithElemById(idName, node[i]));
+					}
+					return nodes;
+				}
+				else {
+					return getArrWithElemById(idName);
+				}
 			}
 			else if(firstChar == '.') {
 				var className = name.substr(1);
@@ -82,7 +112,6 @@
 						nodes = nodes.concat(getArrWithElemsByClass(className, node[i]));
 					}
 					return nodes;
-
 				}
 				else {
 					return getArrWithElemsByClass(className);
