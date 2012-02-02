@@ -11,13 +11,41 @@
 
 		function simpleAttrParser(rule) {
 			var res = {};
-			rule = rule.split(/(?=[#.])/).forEach(function(c) {
+			rule.split(/(?=[#.])/).forEach(function(c) {
 				var first = c.charAt(0);
-				if(first === '#') res.id = c.substr(1);
-				else if(first === '.') res.className = c.substr(1);
-				else if(c.length) res.tagName = c.toUpperCase();
+				if(first === '#') {
+					res.id = c.substr(1);
+				}
+				else if(first === '.') {
+					res.className = c.substr(1);
+				}
+				else if(c.length) {
+					res.tagName = c.toUpperCase();
+				}
 			});
+
 			return res;
+		}
+
+		function attrCheck(node, rule) {
+			for(var p in rule) {
+				if(p === 'tagName') {
+					if(node.tagName.toUpperCase() !== rule[p]) {
+						return false;
+					}
+				}
+				else if(p === 'className') {
+					if(!_.hasClass(node, rule[p])) {
+						return false;
+					}
+				}
+				else {
+					if(node[p] !== rule[p]) {
+						return false;
+					}
+				}
+			}
+			return true;
 		}
 
 		function nodesFromString(str) {
@@ -26,40 +54,59 @@
 			return fragment.childNodes;
 		}
 
+
 		_.create = function(tagName, attr) {
 			var node = doc.createElement(tagName);
-			if(attr) for(var prop in attr) node.setAttribute(prop, attr[prop]);
+			if(attr) {
+				for(var prop in attr) {
+					node.setAttribute(prop, attr[prop]);
+				}
+			}
 			return node;
 		};
 
 		_.wrap = function(node, wrapper, attr) {
-			if(wrapper.hasWord) wrapper = _.create(wrapper, attr);
+			if(wrapper.hasWord) {
+				wrapper = _.create(wrapper, attr);
+			}
 			node.parentNode.insertBefore(wrapper, node);
 			wrapper.appendChild(node);
 		};
 
 		_.wrapInner = function(node, wrapper, attr) {
-			if(wrapper.hasWord) wrapper = _.create(wrapper, attr);
+			if(wrapper.hasWord) {
+				wrapper = _.create(wrapper, attr);
+			}
 			for(var n = node.childNodes; n[0]; wrapper.appendChild(n[0])) {}
 			node.appendChild(wrapper);
 		};
 
 		_.children = function(node, rule, nodeTypes) {
-			if(typeof rule == 'string') rule = simpleAttrParser(rule || '');
+			if(typeof rule == 'string') {
+				rule = simpleAttrParser(rule || '');
+			}
 			nodeTypes = nodeTypes || nodeTypeDefault;
 			var c = node.childNodes, C = [];
-			mainIterator: for(var i = 0, l = c.length; i < l; i++) {
-				for(var j = 0, k = nodeTypes.length; j < k; j++) if(c[i].nodeType !== nodeTypes[j]) continue mainIterator;
-				for(var p in rule) if(c[i][p] !== rule[p]) continue mainIterator;
+			for(var i = 0, l = c.length; i < l; i++) {
+				if(!~nodeTypes.indexOf(c[i].nodeType)) {
+					continue;
+				}
+				if(!attrCheck(c[i], rule)) {
+					continue;
+				}
 				C.push(c[i]);
 			}
 			return C;
 		};
 
 		_.parent = function(node, rule) {
-			if(typeof rule == 'string') rule = simpleAttrParser(rule || '');
-			mainIterator: for(var parent = node; parent = parent.parentNode;) {
-				for(var prop in rule) if(parent[prop] !== rule[prop]) continue mainIterator;
+			if(typeof rule == 'string') {
+				rule = simpleAttrParser(rule || '');
+			}
+			for(var parent = node; parent = parent.parentNode;) {
+				if(!attrCheck(parent, rule)) {
+					continue;
+				}
 				return parent;
 			}
 			return null;
@@ -69,7 +116,8 @@
 			var clone = node.cloneNode(param);
 			_.event.copyEvents(clone, node);
 			if(param) {
-				var clones = _.tag('*', clone), nodes = _.tag('*', node);
+				var	clones = _.tag('*', clone),
+					nodes = _.tag('*', node);
 				for(var i = 0, l = nodes.length; i < l; i++) {
 					_.event.copyEvents(clones[i], nodes[i]);
 				}
@@ -83,7 +131,9 @@
 
 		_.before = function(what, where) {
 			var M = [];
-			if(typeof what === 'string') what = nodesFromString(what);
+			if(typeof what === 'string') {
+				what = nodesFromString(what);
+			}
 			what = toArraySimple(what);
 			what.forEach(function(c) {
 				M.push(c);
@@ -94,7 +144,9 @@
 
 		_.append = function(what, where) {
 			var M = [];
-			if(typeof what === 'string') what = nodesFromString(what);
+			if(typeof what === 'string') {
+				what = nodesFromString(what);
+			}
 			what = toArraySimple(what);
 			what.forEach(function(c) {
 				M.push(c);
@@ -109,11 +161,15 @@
 				while(child.nodeType !== 1 && child.nextSibling) {
 					child = child.nextSibling;
 				}
-				if(child.nodeType === 1) return child;
+				if(child.nodeType === 1) {
+					return child;
+				}
 				return undefined;
 			}
 			else {
-				if(typeof child == 'string') child= _.create(child);
+				if(typeof child == 'string') {
+					child= _.create(child);
+				}
 				node.insertBefore(child, node.firstChild);
 				return child;
 			}
@@ -128,8 +184,12 @@
 
 		_.addClass = function(node, name) {
 			if(!node.className.hasWord(name)) {
-				if(!node.className) {node.className = name;}
-				else {node.className += ' ' + name;}
+				if(!node.className) {
+					node.className = name;
+				}
+				else {
+					node.className += ' ' + name;
+				}
 			}
 		};
 
@@ -192,9 +252,15 @@
 				});
 				return M;
 			},
-			'wrap': function(wrapper) {
+			'wrap': function(wrapper, attr) {
 				this.ns.forEach(function(c) {
-					_.wrap(c, wrapper);
+					_.wrap(c, wrapper, attr);
+				});
+				return this;
+			},
+			'wrapInner': function(wrapper, attr) {
+				this.ns.forEach(function(c) {
+					_.wrapInner(c, wrapper, attr);
 				});
 				return this;
 			},
