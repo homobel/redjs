@@ -5,3 +5,7 @@
 //~	- http://www.opensource.org/licenses/mit-license.php
 //~	- http://www.gnu.org/licenses/gpl-2.0.html
 
+//~	Json2.js (C) Douglas Crockford
+//~	douglas@crockford.com
+//~	http://www.JSON.org/
+
