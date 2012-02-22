@@ -402,13 +402,37 @@
 	events.forEach(function(c) {
 		var ev = {};
 		ev[c] = function(method) {
-			this.ns.forEach(function(cc) {
-				_.event.add(cc, c, method);
-			});
-
+			if(method === undefined) {
+				this.ns.forEach(function(cc) {
+					_.force(cc, c);
+				});
+			}
+			else {
+				this.ns.forEach(function(cc) {
+					_.bind(cc, c, method);
+				});
+			}
 			return this;
 		};
 		_.extend(ev);
 	});
+
+/*
+	var mousewheelEventName = doc.createEventObject ? 'mousewheel' : 'DOMMouseScroll';
+
+	_.event.create({
+		'name': 'mousewheel',
+		'base': mousewheelEventName
+	});
+
+	_.extend({
+		'mousewheel': function(method) {
+			this.ns.forEach(function(c) {
+				_.bind(c, mousewheelEventName, method);
+			});
+		}
+	});
+*/
+
 
 })();

@@ -12,13 +12,12 @@
 //~ require: prototypes/number.js
 
 
-(function(win) {
+(function(win, doc, undefined) {
 
 	var	redjs = function(name, node) {return new RedCollection(name, node);},
 		_ = redjs,
 		hash = ('redjs'+Math.random()).replace('.', ''),
 		type = getType,
-		doc = document,
 		htmlNode = doc.documentElement,
 		headNode = doc.getElementsByTagName('head')[0],
 		testNode = doc.createElement('div'),
@@ -109,8 +108,7 @@
 		'filter': function(func) {
 			if(this.length > 0 && func.call) {
 				var M = this.ns.filter(function(c) {
-						return func.call(c);
-					return true;
+					return func.call(c);
 				});
 				return _(M);
 			}
@@ -122,8 +120,6 @@
 
 	});
 
-
-//~ require: forms.js
 
 // compatibility
 
@@ -156,6 +152,6 @@
 
 	_.addEvent(win, 'resize', __refreshViewport);
 
-})(window);
+})(window, document);
 
 //~ include: ../external-modules

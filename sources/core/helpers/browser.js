@@ -73,7 +73,7 @@
 
 		function Features() {
 
-			testNode.innerHTML = '<div style="float: left; opacity: .99">';
+			testNode.innerHTML = '<div style="float: left; opacity: .99"></div>';
 			var testNodeChild = testNode.getElementsByTagName('div')[0];
 
 			this.JSON = !!win.JSON;

@@ -23,7 +23,6 @@
 					res.tagName = c.toUpperCase();
 				}
 			});
-
 			return res;
 		}
 
@@ -49,9 +48,7 @@
 		}
 
 		function nodesFromString(str) {
-			var fragment = _.create('div');
-			fragment.innerHTML = str;
-			return fragment.childNodes;
+			return _.create('div', {'innerHTML': str}).childNodes;
 		}
 
 
@@ -59,14 +56,14 @@
 			var node = doc.createElement(tagName);
 			if(attr) {
 				for(var prop in attr) {
-					node.setAttribute(prop, attr[prop]);
+					node[prop] = attr[prop];
 				}
 			}
 			return node;
 		};
 
 		_.wrap = function(node, wrapper, attr) {
-			if(wrapper.hasWord) {
+			if(typeof wrapper == 'string') {
 				wrapper = _.create(wrapper, attr);
 			}
 			node.parentNode.insertBefore(wrapper, node);
@@ -74,7 +71,7 @@
 		};
 
 		_.wrapInner = function(node, wrapper, attr) {
-			if(wrapper.hasWord) {
+			if(typeof wrapper == 'string') {
 				wrapper = _.create(wrapper, attr);
 			}
 			for(var n = node.childNodes; n[0]; wrapper.appendChild(n[0])) {}
@@ -126,6 +123,10 @@
 		};
 
 		_.remove = function(node) {
+			var key = node[data.hash];
+			if(key !== undefined) {
+				delete _.dataCache[key];
+			}
 			node.parentNode.removeChild(node);
 		};
 
@@ -138,6 +139,25 @@
 			what.forEach(function(c) {
 				M.push(c);
 				where.parentNode.insertBefore(c, where);
+			});
+			return M;
+		};
+
+		_.after = function(what, where) {
+			var M = [];
+			if(typeof what === 'string') {
+				what = nodesFromString(what);
+			}
+			what = toArraySimple(what);
+			what.forEach(function(c) {
+				M.push(c);
+				for(var next = where.nextSibling; next.nodeType !== 1; next = where.nextSibling) {}
+				if(next.nodeType === 1) {
+					where.parentNode.insertBefore(c, where);
+				}
+				else {
+					where.parentNode.appendChild(c);
+				}
 			});
 			return M;
 		};
@@ -164,21 +184,21 @@
 				if(child.nodeType === 1) {
 					return child;
 				}
-				return undefined;
+				return null;
 			}
 			else {
 				if(typeof child == 'string') {
 					child= _.create(child);
 				}
-				node.insertBefore(child, node.firstChild);
+				if(node.firstChild) {
+					node.insertBefore(child, node.firstChild);
+				}
+				else {
+					node.appendChild(child);
+				}
 				return child;
 			}
 		};
-
-		_.getNodeText = function(node) {
-			return node.text || node.textContent || '';
-		};
-
 
 	// --------- CLASS MANIPULATION
 
@@ -216,7 +236,9 @@
 
 			'children': function(rule) {
 				var M = _();
-				if(typeof rule == 'string') rule = simpleAttrParser(rule || '');
+				if(typeof rule == 'string') {
+					rule = simpleAttrParser(rule || '');
+				}
 				this.ns.forEach(function(c) {
 					M.include(_.children(c, rule));
 				});
@@ -224,25 +246,33 @@
 			},
 			'parent': function(rule) {
 				var M = _();
-				if(typeof rule == 'string') rule = simpleAttrParser(rule || '');
+				if(typeof rule == 'string') {
+					rule = simpleAttrParser(rule || '');
+				}
 				this.ns.forEach(function(c) {
-					M.include(_.parent(c, rule));
+					var parent = _.parent(c, rule);
+					if(parent !== null) {
+						M.include(parent);
+					}
 				});
 				return M;
 			},
 			'firstChild': function(child) {
-			    	var M = _();
 				if(child === undefined) {
+			 	   	var M = _();
 					this.ns.forEach(function(c) {
-						M.include(_.firstChild(c));
+						var first = _.firstChild(c);
+						if(first !== null) {
+							M.include(first);
+						}
 					});
 					return M;
 				}
 				else {
-					this.each(function(c) {
-						M.include(_.firstChild(c, child));
-					});
-					return M;
+					if(this.ns[0]) {
+						_.firstChild(this.ns[0], child);
+					}
+					return this;
 				}
 			},
 			'clone': function(all) {
@@ -253,18 +283,32 @@
 				return M;
 			},
 			'wrap': function(wrapper, attr) {
+				var wrapperType = type(wrapper);
+				if(wrapperType.is('string')) {
+					wrapper = _.create(wrapper, attr);
+				}
+				else if(wrapperType.is('redjs')) {
+					wrapper = wrapper.ns[0];
+				}
 				this.ns.forEach(function(c) {
-					_.wrap(c, wrapper, attr);
+					_.wrap(c, wrapper);
 				});
 				return this;
 			},
 			'wrapInner': function(wrapper, attr) {
+				var wrapperType = type(wrapper);
+				if(wrapperType.is('string')) {
+					wrapper = _.create(wrapper, attr);
+				}
+				else if(wrapperType.is('redjs')) {
+					wrapper = wrapper.ns[0];
+				}
 				this.ns.forEach(function(c) {
-					_.wrapInner(c, wrapper, attr);
+					_.wrapInner(c, wrapper);
 				});
 				return this;
 			},
-			'remove': function(node) {
+			'remove': function() {
 				this.ns.forEach(function(c) {
 					_.remove(c);
 				});
@@ -277,7 +321,10 @@
 					});
 				}
 				else {
-					if(this.ns[0]) return this.ns[0].innerHTML;
+					if(this.ns[0]) {
+						return this.ns[0].innerHTML;
+					}
+					return '';
 				}
 				return this;
 			},
@@ -307,6 +354,19 @@
 				return this;
 			},
 
+			'after': function(node) {
+				if(this.ns[0]) {
+					return _(_.after(node, this.ns[0]).filter(function(c) {
+						return c.nodeType === 1;
+					}));
+				}
+				return this;
+			},
+			'afterTo': function(node) {
+				_.after(this.ns, node);
+				return this;
+			},
+
 		// attr manipulation
 
 			'attr': function(name, val) {
@@ -316,16 +376,23 @@
 					});
 				}
 				else {
-					if(this.ns[0]) return this.ns[0].getAttribute(name, 2);
+					if(this.ns[0]) {
+						return this.ns[0].getAttribute(name, 2);
+					}
+					return null;
 				}
 				return this;
 			},
 			'addClass': function(name) {
-				this.ns.forEach(function(c) {_.addClass(c, name);});
+				this.ns.forEach(function(c) {
+					_.addClass(c, name);
+				});
 				return this;
 			},
 			'toggleClass': function(name) {
-				this.ns.forEach(function(c) {_.toggleClass(c, name);});
+				this.ns.forEach(function(c) {
+					_.toggleClass(c, name);
+				});
 				return this;
 			},
 			'delClass': function(name) {
@@ -335,8 +402,12 @@
 				return this;
 			},
 			'hasClass': function(name) {
-				if(this.ns[0]) return _.hasClass(this.ns[0], name);
-				else return false;
+				if(this.ns[0]) {
+					return _.hasClass(this.ns[0], name);
+				}
+				else {
+					return false;
+				}
 			}
 
 		});

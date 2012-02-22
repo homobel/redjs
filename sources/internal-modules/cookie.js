@@ -15,7 +15,9 @@
 
 		function setCookie(name, value, days, attrs) {
 			var cookie = [name+'='+encodeURIComponent(value || '')];
-			if(days) cookie.push('max-age='+days*86400);
+			if(days) {
+				cookie.push('max-age='+parseInt(days*86400));
+			}
 			if(attrs) for(var prop in attrs) {
 				cookie.push(prop+'='+attrs[prop]);
 			}

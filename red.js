@@ -5,6 +5,10 @@
 //~	- http://www.opensource.org/licenses/mit-license.php
 //~	- http://www.gnu.org/licenses/gpl-2.0.html
 
+//~	Json2.js (C) Douglas Crockford
+//~	douglas@crockford.com
+//~	http://www.JSON.org/
+
 
 //~ <component>
 //~	Name: RedJS
@@ -119,6 +123,11 @@
 		return this;
 	};
 
+	A.delByVal = function(value) {
+		this.del(this.indexOf(value));
+		return this;
+	};
+
 	A.linear = function() {
 		var M = [];
 		function linear(m) {
@@ -179,15 +188,18 @@
 		return this.replace(/-\D/g, function(match) {
 			return match.charAt(1).toUpperCase();
 		});
-
 	};
 
 	S.toInt = function(base) {
 		return parseInt(this, base || 10);
 	};
 
-	S.toFloat = function(base) {
+	S.toFloat = function() {
 		return parseFloat(this);
+	};
+
+	S.toNumber = function() {
+		return ~this.indexOf('.') ? this.toFloat() :  this.toInt();
 	};
 
 	function tenBasedColor(string) {
@@ -238,6 +250,20 @@
 		return false;
 	};
 
+	S.trim = function(chars) {
+		return this.ltrim(chars).rtrim(chars);
+	};
+
+	S.ltrim = function(chars) {
+		chars = chars || '\\s';
+		return this.replace(new RegExp('^[' + chars + ']+', 'g'), '');
+	};
+
+	S.rtrim = function(chars) {
+		chars = chars || '\\s';
+		return this.replace(new RegExp('[' + chars + ']+$', 'g'), '');
+	};
+
 })(String.prototype);
 
 
@@ -272,13 +298,12 @@
 
 
 
-(function(win) {
+(function(win, doc, undefined) {
 
 	var	redjs = function(name, node) {return new RedCollection(name, node);},
 		_ = redjs,
 		hash = ('redjs'+Math.random()).replace('.', ''),
 		type = getType,
-		doc = document,
 		htmlNode = doc.documentElement,
 		headNode = doc.getElementsByTagName('head')[0],
 		testNode = doc.createElement('div'),
@@ -387,7 +412,7 @@
 
 		function Features() {
 
-			testNode.innerHTML = '<div style="float: left; opacity: .99">';
+			testNode.innerHTML = '<div style="float: left; opacity: .99"></div>';
 			var testNodeChild = testNode.getElementsByTagName('div')[0];
 
 			this.JSON = !!win.JSON;
@@ -565,9 +590,30 @@
 //~ </component>
 
 
-	_.id = function(name) {
-		return doc.getElementById(name);
+	_.id = function(name, node) {
+		if(node === undefined) {
+			return doc.getElementById(name);
+		}
+		else {
+			return getNodeByIdAndParent(name, node);
+		}
 	};
+
+	function getNodeByIdAndParent(name, node) {
+		var children = _.children(node);
+		for(var i = 0, l = children.length; i < l; i++) {
+			if(children[i].getAttribute('id') == name) {
+				return children[i];
+			}
+			else {
+				var res = getNodeByIdAndParent(name, children[i]);
+				if(res !== null) {
+					return res;
+				}
+			}
+		}
+		return null;
+	}
 
 	_.tag = function(name, node) {
 		return (node || doc).getElementsByTagName(name);
@@ -601,8 +647,8 @@
 
 	// converting to array methods
 	
-	function getArrWithElemById(name) {
-		return toArraySimple(_.id(name));
+	function getArrWithElemById(name, node) {
+		return toArraySimple(_.id(name, node));
 	}
 	
 	function getArrWithElemsByTag(name, node) {
@@ -633,7 +679,16 @@
 		if(firstType.is('string')) {
 			var firstChar = name.charAt(0);
 			if(firstChar == '#') {
-				return getArrWithElemById(name.substr(1));
+				var idName = name.substr(1);
+				if(inContext) {
+					for(var nodes = [], i = 0, l = node.length; i<l; i++) {
+						nodes = nodes.concat(getArrWithElemById(idName, node[i]));
+					}
+					return nodes;
+				}
+				else {
+					return getArrWithElemById(idName);
+				}
 			}
 			else if(firstChar == '.') {
 				var className = name.substr(1);
@@ -642,7 +697,6 @@
 						nodes = nodes.concat(getArrWithElemsByClass(className, node[i]));
 					}
 					return nodes;
-
 				}
 				else {
 					return getArrWithElemsByClass(className);
@@ -681,11 +735,6 @@
 //~ </component>
 
 
-	function hookCache(node) {
-		node[data.hash] = data.next++;
-		_.dataCache[node[data.hash]] = {};
-	}
-
 	function data(node, name, val) {
 		if(node) {
 			var key = node[data.hash];
@@ -693,14 +742,15 @@
 				if(key !== undefined) {
 					return _.dataCache[key][name];
 				}
-				return undefined;
 			}
 			else if(arguments.length === 3) {
 				if(val === null) {
 					delete _.dataCache[key][name];
 				}
 				else {
-					if(key === undefined) {hookCache(node);}
+					if(key === undefined) {
+						data.hookCache(node);
+					}
 					_.dataCache[node[data.hash]][name] = val;
 					return val;
 				}
@@ -710,24 +760,53 @@
 
 	data.next = 0;
 	data.hash = 'data___'+hash;
+	data.hookCache = function(node) {
+		node[data.hash] = data.next++;
+		_.dataCache[node[data.hash]] = {};
+	};
 
 	_.data = data;
 	_.dataCache = {};
 
+
+	function provideData(node, name, value) {
+		var dataObj = data(node, name);
+		if(dataObj === undefined) {
+			return data(node, name, value);
+		}
+		return dataObj;
+	}
+
+	_.provideData = provideData;
+
+
 	_.extend({
 
 		'data': function(name, val) {
-			if(name !== undefined && name !== '') {
-				if(arguments.length == 2) {
-					this.ns.forEach(function(c) {
-						_.data(c, name, val);
-					});
-				}
-				else {
-					if(this.ns[0]) return _.data(this.ns[0], name);
+			if(arguments.length == 2) {
+				this.ns.forEach(function(c) {
+					_.data(c, name, val);
+				});
+				return this;
+			}
+			else {
+				if(this.ns[0]) {
+					return _.data(this.ns[0], name);
 				}
 			}
-			return this;
+		},
+		'provideData': function() {
+			if(arguments.length == 2) {
+				this.ns.forEach(function(c) {
+					_.provideDate(c, name, val);
+				});
+				return this;
+			}
+			else {
+				if(this.ns[0]) {
+					return _.provideDate(this.ns[0], name);
+				}
+			}
 		}
 
 	});
@@ -735,7 +814,7 @@
 
 //~ <component>
 //~	Name: Deferred
-//~	Info: Provide callbacks API
+//~	Info: Provides callbacks API
 //~ </component>
 
 (function() {
@@ -1002,7 +1081,7 @@
 			if(border) {
 				var	borderLeftWidth = _.gstyle(node, 'borderLeftWidth').toInt() || 0,
 					borderRightWidth = _.gstyle(node, 'borderRightWidth').toInt() || 0;
-				width += borderTopWidth + borderBottomWidth;
+				width += borderLeftWidth + borderRightWidth;
 			}
 			if(margin) {
 				var	marginLeft = _.gstyle(node, 'marginLeft').toInt() || 0,
@@ -1066,29 +1145,41 @@
 		};
 
 		_.extend({
-
 			'css': function(name, value) {
-				if(value !== undefined || name instanceof Object) {
+				if(value !== undefined || typeof name == 'object') {
 					this.ns.forEach(function(c) {
 						_.css(c, name, value);
 					});
 				}
 				else {
-					if(this.ns[0]) return _.css(this.ns[0], name);
+					if(this.ns[0]) {
+						return _.css(this.ns[0], name);
+					}
+					return '';
 				}
 				return this;
 			},
 			'height': function(padding, border, margin) {
-				if(this.ns[0]) return _.height(this.ns[0], padding, border, margin);
+				if(this.ns[0]) {
+					return _.height(this.ns[0], padding, border, margin);
+				}
+				return 0;
 			},
 			'width': function(padding, border, margin) {
-				if(this.ns[0]) return _.width(this.ns[0], padding, border, margin);
+				if(this.ns[0]) {
+					return _.width(this.ns[0], padding, border, margin);
+				}
+				return 0;
 			},
-
 			'offset': function(padding, border, margin) {
-				if(this.ns[0]) return _.offset(this.ns[0]);
+				if(this.ns[0]) {
+					return _.offset(this.ns[0]);
+				}
+				return {
+					'top': 0,
+					'left': 0
+				};
 			}
-
 		});
 
 	})();
@@ -1106,55 +1197,99 @@
 
 		function simpleAttrParser(rule) {
 			var res = {};
-			rule = rule.split(/(?=[#.])/).forEach(function(c) {
+			rule.split(/(?=[#.])/).forEach(function(c) {
 				var first = c.charAt(0);
-				if(first === '#') res.id = c.substr(1);
-				else if(first === '.') res.className = c.substr(1);
-				else if(c.length) res.tagName = c.toUpperCase();
+				if(first === '#') {
+					res.id = c.substr(1);
+				}
+				else if(first === '.') {
+					res.className = c.substr(1);
+				}
+				else if(c.length) {
+					res.tagName = c.toUpperCase();
+				}
 			});
 			return res;
 		}
 
-		function nodesFromString(str) {
-			var fragment = _.create('div');
-			fragment.innerHTML = str;
-			return fragment.childNodes;
+		function attrCheck(node, rule) {
+			for(var p in rule) {
+				if(p === 'tagName') {
+					if(node.tagName.toUpperCase() !== rule[p]) {
+						return false;
+					}
+				}
+				else if(p === 'className') {
+					if(!_.hasClass(node, rule[p])) {
+						return false;
+					}
+				}
+				else {
+					if(node[p] !== rule[p]) {
+						return false;
+					}
+				}
+			}
+			return true;
 		}
+
+		function nodesFromString(str) {
+			return _.create('div', {'innerHTML': str}).childNodes;
+		}
+
 
 		_.create = function(tagName, attr) {
 			var node = doc.createElement(tagName);
-			if(attr) for(var prop in attr) node.setAttribute(prop, attr[prop]);
+			if(attr) {
+				for(var prop in attr) {
+					node[prop] = attr[prop];
+				}
+			}
 			return node;
 		};
 
 		_.wrap = function(node, wrapper, attr) {
-			if(wrapper.hasWord) wrapper = _.create(wrapper, attr);
+			if(typeof wrapper == 'string') {
+				wrapper = _.create(wrapper, attr);
+			}
 			node.parentNode.insertBefore(wrapper, node);
 			wrapper.appendChild(node);
 		};
 
 		_.wrapInner = function(node, wrapper, attr) {
-			if(wrapper.hasWord) wrapper = _.create(wrapper, attr);
+			if(typeof wrapper == 'string') {
+				wrapper = _.create(wrapper, attr);
+			}
 			for(var n = node.childNodes; n[0]; wrapper.appendChild(n[0])) {}
 			node.appendChild(wrapper);
 		};
 
 		_.children = function(node, rule, nodeTypes) {
-			if(typeof rule == 'string') rule = simpleAttrParser(rule || '');
+			if(typeof rule == 'string') {
+				rule = simpleAttrParser(rule || '');
+			}
 			nodeTypes = nodeTypes || nodeTypeDefault;
 			var c = node.childNodes, C = [];
-			mainIterator: for(var i = 0, l = c.length; i < l; i++) {
-				for(var j = 0, k = nodeTypes.length; j < k; j++) if(c[i].nodeType !== nodeTypes[j]) continue mainIterator;
-				for(var p in rule) if(c[i][p] !== rule[p]) continue mainIterator;
+			for(var i = 0, l = c.length; i < l; i++) {
+				if(!~nodeTypes.indexOf(c[i].nodeType)) {
+					continue;
+				}
+				if(!attrCheck(c[i], rule)) {
+					continue;
+				}
 				C.push(c[i]);
 			}
 			return C;
 		};
 
 		_.parent = function(node, rule) {
-			if(typeof rule == 'string') rule = simpleAttrParser(rule || '');
-			mainIterator: for(var parent = node; parent = parent.parentNode;) {
-				for(var prop in rule) if(parent[prop] !== rule[prop]) continue mainIterator;
+			if(typeof rule == 'string') {
+				rule = simpleAttrParser(rule || '');
+			}
+			for(var parent = node; parent = parent.parentNode;) {
+				if(!attrCheck(parent, rule)) {
+					continue;
+				}
 				return parent;
 			}
 			return null;
@@ -1164,7 +1299,8 @@
 			var clone = node.cloneNode(param);
 			_.event.copyEvents(clone, node);
 			if(param) {
-				var clones = _.tag('*', clone), nodes = _.tag('*', node);
+				var	clones = _.tag('*', clone),
+					nodes = _.tag('*', node);
 				for(var i = 0, l = nodes.length; i < l; i++) {
 					_.event.copyEvents(clones[i], nodes[i]);
 				}
@@ -1173,12 +1309,18 @@
 		};
 
 		_.remove = function(node) {
+			var key = node[data.hash];
+			if(key !== undefined) {
+				delete _.dataCache[key];
+			}
 			node.parentNode.removeChild(node);
 		};
 
 		_.before = function(what, where) {
 			var M = [];
-			if(typeof what === 'string') what = nodesFromString(what);
+			if(typeof what === 'string') {
+				what = nodesFromString(what);
+			}
 			what = toArraySimple(what);
 			what.forEach(function(c) {
 				M.push(c);
@@ -1187,9 +1329,30 @@
 			return M;
 		};
 
+		_.after = function(what, where) {
+			var M = [];
+			if(typeof what === 'string') {
+				what = nodesFromString(what);
+			}
+			what = toArraySimple(what);
+			what.forEach(function(c) {
+				M.push(c);
+				for(var next = where.nextSibling; next.nodeType !== 1; next = where.nextSibling) {}
+				if(next.nodeType === 1) {
+					where.parentNode.insertBefore(c, where);
+				}
+				else {
+					where.parentNode.appendChild(c);
+				}
+			});
+			return M;
+		};
+
 		_.append = function(what, where) {
 			var M = [];
-			if(typeof what === 'string') what = nodesFromString(what);
+			if(typeof what === 'string') {
+				what = nodesFromString(what);
+			}
 			what = toArraySimple(what);
 			what.forEach(function(c) {
 				M.push(c);
@@ -1204,27 +1367,35 @@
 				while(child.nodeType !== 1 && child.nextSibling) {
 					child = child.nextSibling;
 				}
-				if(child.nodeType === 1) return child;
-				return undefined;
+				if(child.nodeType === 1) {
+					return child;
+				}
+				return null;
 			}
 			else {
-				if(typeof child == 'string') child= _.create(child);
-				node.insertBefore(child, node.firstChild);
+				if(typeof child == 'string') {
+					child= _.create(child);
+				}
+				if(node.firstChild) {
+					node.insertBefore(child, node.firstChild);
+				}
+				else {
+					node.appendChild(child);
+				}
 				return child;
 			}
 		};
-
-		_.getNodeText = function(node) {
-			return node.text || node.textContent || '';
-		};
-
 
 	// --------- CLASS MANIPULATION
 
 		_.addClass = function(node, name) {
 			if(!node.className.hasWord(name)) {
-				if(!node.className) {node.className = name;}
-				else {node.className += ' ' + name;}
+				if(!node.className) {
+					node.className = name;
+				}
+				else {
+					node.className += ' ' + name;
+				}
 			}
 		};
 
@@ -1251,7 +1422,9 @@
 
 			'children': function(rule) {
 				var M = _();
-				if(typeof rule == 'string') rule = simpleAttrParser(rule || '');
+				if(typeof rule == 'string') {
+					rule = simpleAttrParser(rule || '');
+				}
 				this.ns.forEach(function(c) {
 					M.include(_.children(c, rule));
 				});
@@ -1259,25 +1432,33 @@
 			},
 			'parent': function(rule) {
 				var M = _();
-				if(typeof rule == 'string') rule = simpleAttrParser(rule || '');
+				if(typeof rule == 'string') {
+					rule = simpleAttrParser(rule || '');
+				}
 				this.ns.forEach(function(c) {
-					M.include(_.parent(c, rule));
+					var parent = _.parent(c, rule);
+					if(parent !== null) {
+						M.include(parent);
+					}
 				});
 				return M;
 			},
 			'firstChild': function(child) {
-			    	var M = _();
 				if(child === undefined) {
+			 	   	var M = _();
 					this.ns.forEach(function(c) {
-						M.include(_.firstChild(c));
+						var first = _.firstChild(c);
+						if(first !== null) {
+							M.include(first);
+						}
 					});
 					return M;
 				}
 				else {
-					this.each(function(c) {
-						M.include(_.firstChild(c, child));
-					});
-					return M;
+					if(this.ns[0]) {
+						_.firstChild(this.ns[0], child);
+					}
+					return this;
 				}
 			},
 			'clone': function(all) {
@@ -1287,13 +1468,33 @@
 				});
 				return M;
 			},
-			'wrap': function(wrapper) {
+			'wrap': function(wrapper, attr) {
+				var wrapperType = type(wrapper);
+				if(wrapperType.is('string')) {
+					wrapper = _.create(wrapper, attr);
+				}
+				else if(wrapperType.is('redjs')) {
+					wrapper = wrapper.ns[0];
+				}
 				this.ns.forEach(function(c) {
 					_.wrap(c, wrapper);
 				});
 				return this;
 			},
-			'remove': function(node) {
+			'wrapInner': function(wrapper, attr) {
+				var wrapperType = type(wrapper);
+				if(wrapperType.is('string')) {
+					wrapper = _.create(wrapper, attr);
+				}
+				else if(wrapperType.is('redjs')) {
+					wrapper = wrapper.ns[0];
+				}
+				this.ns.forEach(function(c) {
+					_.wrapInner(c, wrapper);
+				});
+				return this;
+			},
+			'remove': function() {
 				this.ns.forEach(function(c) {
 					_.remove(c);
 				});
@@ -1306,12 +1507,19 @@
 					});
 				}
 				else {
-					if(this.ns[0]) return this.ns[0].innerHTML;
+					if(this.ns[0]) {
+						return this.ns[0].innerHTML;
+					}
+					return '';
 				}
 				return this;
 			},
 			'append': function(node) {
-				if(this.ns[0]) return _(_.append(node, this.ns[0]).filter(function(c) {return c.nodeType === 1;}));
+				if(this.ns[0]) {
+					return _(_.append(node, this.ns[0]).filter(function(c) {
+						return c.nodeType === 1;
+					}));
+				}
 				return this;
 			},
 			'appendTo': function(node) {
@@ -1319,11 +1527,29 @@
 				return this;
 			},
 
-			'before': function() {
-				if(this.ns[0]) return _(_.before(node, this.ns[0]).filter(function(c) {return c.nodeType === 1;}));
+			'before': function(node) {
+				if(this.ns[0]) {
+					return _(_.before(node, this.ns[0]).filter(function(c) {
+						return c.nodeType === 1;
+					}));
+				}
+				return this;
 			},
 			'beforeTo': function(node) {
 				_.before(this.ns, node);
+				return this;
+			},
+
+			'after': function(node) {
+				if(this.ns[0]) {
+					return _(_.after(node, this.ns[0]).filter(function(c) {
+						return c.nodeType === 1;
+					}));
+				}
+				return this;
+			},
+			'afterTo': function(node) {
+				_.after(this.ns, node);
 				return this;
 			},
 
@@ -1336,16 +1562,23 @@
 					});
 				}
 				else {
-					if(this.ns[0]) return this.ns[0].getAttribute(name, 2);
+					if(this.ns[0]) {
+						return this.ns[0].getAttribute(name, 2);
+					}
+					return null;
 				}
 				return this;
 			},
 			'addClass': function(name) {
-				this.ns.forEach(function(c) {_.addClass(c, name);});
+				this.ns.forEach(function(c) {
+					_.addClass(c, name);
+				});
 				return this;
 			},
 			'toggleClass': function(name) {
-				this.ns.forEach(function(c) {_.toggleClass(c, name);});
+				this.ns.forEach(function(c) {
+					_.toggleClass(c, name);
+				});
 				return this;
 			},
 			'delClass': function(name) {
@@ -1355,8 +1588,12 @@
 				return this;
 			},
 			'hasClass': function(name) {
-				if(this.ns[0]) return _.hasClass(this.ns[0], name);
-				else return false;
+				if(this.ns[0]) {
+					return _.hasClass(this.ns[0], name);
+				}
+				else {
+					return false;
+				}
 			}
 
 		});
@@ -1767,14 +2004,38 @@
 	events.forEach(function(c) {
 		var ev = {};
 		ev[c] = function(method) {
-			this.ns.forEach(function(cc) {
-				_.event.add(cc, c, method);
-			});
-
+			if(method === undefined) {
+				this.ns.forEach(function(cc) {
+					_.force(cc, c);
+				});
+			}
+			else {
+				this.ns.forEach(function(cc) {
+					_.bind(cc, c, method);
+				});
+			}
 			return this;
 		};
 		_.extend(ev);
 	});
+
+/*
+	var mousewheelEventName = doc.createEventObject ? 'mousewheel' : 'DOMMouseScroll';
+
+	_.event.create({
+		'name': 'mousewheel',
+		'base': mousewheelEventName
+	});
+
+	_.extend({
+		'mousewheel': function(method) {
+			this.ns.forEach(function(c) {
+				_.bind(c, mousewheelEventName, method);
+			});
+		}
+	});
+*/
+
 
 })();
 
@@ -1824,8 +2085,7 @@
 		'filter': function(func) {
 			if(this.length > 0 && func.call) {
 				var M = this.ns.filter(function(c) {
-						return func.call(c);
-					return true;
+					return func.call(c);
 				});
 				return _(M);
 			}
@@ -1833,29 +2093,6 @@
 		},
 		'find': function(selector) {
 			return _(selector, this);
-		}
-
-	});
-
-
-
-//~ <component>
-//~	Name: Forms
-//~	Info: Provides form elements API
-//~ </component>
-
-	_.extend({
-
-		'val': function(value) {
-			if(value !== undefined) {
-				this.ns.forEach(function(c) {
-					c.value = value;
-				});
-				return this;
-			}
-			else {
-				if(this.ns[0]) return this.ns[0].value;
-			}
 		}
 
 	});
@@ -2152,7 +2389,12 @@ if(!win.JSON) {
 					clearInterval(resptimer);
 					var resp = (params.accept == 'xml')?xmlreq.responseXML:xmlreq.responseText;
 					if(params.accept == 'json') {
-						resp = JSON.parse(resp);
+						try {
+							resp = JSON.parse(resp);
+						}
+						catch(e) {
+							resp = {};
+						}
 					}
 					d.resolve(params.context, resp);
 				}
@@ -2210,123 +2452,126 @@ if(!win.JSON) {
 //~ </component>
 
 
-	(function() {
+	function animate(node, type, terminal, time, callback, effect) {
 
-		var	animationDelay = 16,
-			fn = {
-				'linear': function(x) {
-					return x;
-				},
-				'swing': function(x) {
-					return (-Math.cos(x*Math.PI)/2)+0.5;
+		function changeCss() {
+
+			var	now = Date.now() - start,
+				progress = now / time,
+				result = ((terminal - current) * easing(progress) + current).limit(current, terminal);
+
+			_.css(node, type, result + unit);
+
+			if(progress < 1) {
+				animationTypeData.timer = setTimeout(changeCss, animate.delay);
+			}
+			else {
+				_.css(node, type, terminal);
+				delete animationData[type];
+				if(callback) {
+					callback.call(node);
 				}
-			},
-			animationData = 'animation___'+hash;
-
-		function animationStatus(node, type, val) {
-			var animData = _.data(node, animationData) || _.data(node, animationData, {});
-			if(val !== undefined) {animData[type] = val; return;}
-			return animData[type];
+			}
 		}
 
-		_.animate = function(node, type, terminal, time, callback, fnName) {
+		var	animationData = animate.data(node, type, {}),
+			animationTypeData = animationData[type],
+			currCss = _.css(node, type).toString(),
+			current = currCss.toNumber() || 0,
+			diff = current - terminal,
+			animStatus = diff < 0 ? 'increase' : 'decrease';
 
-			function changeCss() {
-				var	now = Date.now() - start,
-					progress = now / time,
-					result = ((terminal - current)*easing(progress)+current).limit(current, terminal);
+		if(animationTypeData === undefined || animationTypeData.status !== animStatus) {
+			if(animationTypeData !== undefined) {				clearTimeout(animationData[type].timer);
+				delete animationData[type];			}
+			if(diff !== 0) {
 
-				_.css(node, type, result+unit);
-
-				if(progress < 1) {
-					node[timerName] = setTimeout(changeCss, animationDelay);
-				}
-				else {
-					_.css(node, type, terminal);
-					animationStatus(node, type, '');
-					if(callback) {callback.call(node);}
-				}
-			}
-
-			var	currentAnimStatus = animationStatus(node, type),
-				currCss = _.css(node, type).toString(),
-				current = (type == 'opacity')?currCss.toFloat():currCss.toInt(),
-				diff = current-terminal,
-				animStatus = (diff<0)?0:1,
-				timerName = 'animation_'+type+'___'+hash;
-
-			if(currentAnimStatus !== animStatus && diff !== 0) {
-				if(currentAnimStatus !== undefined) {clearTimeout(node[timerName]);}
-
-				var	unit = currCss.match(/[a-z]+/),
-					easing = fn[fnName] || fn['swing'],
+				var	unit = currCss.match(/[a-z]+/) || '',
+					unit = unit == 'auto' ? 'px' : unit,
+					easing = typeof effect == 'function' ? effect : animate.effect[effect] || animate.effect[animate.defaultEffect],
 					start = Date.now();
 
-				unit = (unit)?unit:'';
-				animationStatus(node, type, animStatus);
+				animationData[type] = animationTypeData = {
+					'status': animStatus,
+					'timer': setTimeout(changeCss, animate.delay)
+				};
 
-				node[timerName] = setTimeout(changeCss, animationDelay);
 			}
+		}
 
-		};
+	};	animate.hash = 'animation___' + hash;
+	animate.data = function(node, type, value) {
+		var data = _.provideData(node, animate.hash, {});
+		if(data[type] === undefined) {
+			data[type] = value;
+		}
+		return data[type];
+	};
+	animate.delay = 16;
+ 	animate.effect = {		'linear': function(x) {
+			return x;
+		},
+		'wobble': function(pos) {
+			return (-Math.cos(pos * Math.PI * (9 * pos)) / 2) + 0.5;
+		},
+		'swing': function(x) {
+			return (-Math.cos(x * Math.PI) / 2) + 0.5;
+		}	};
+	animate.defaultEffect = 'swing';	_.animate = animate;
 
-		_.hide = function(node, time, callback) {
-			if(time) {
-				_.animate(node, 'opacity', 0, time, function() {
-					node.style.display = 'none';
-					if(callback) callback();
-				});
-			}
-			else {
-				if (!node.display) {
-					var display = _.gstyle(node, 'display');
-					if(display != 'none') {node.display = display}
-					else {node.display = 'block';}
-				}
+	_.hide = function(node, time, callback, effect) {
+		if(time) {
+			_.animate(node, 'opacity', 0, time, function() {
 				node.style.display = 'none';
+				if(callback) callback();
+			}, effect);
+		}
+		else {
+			if (!node.display) {
+				var display = _.gstyle(node, 'display');
+				if(display != 'none') {node.display = display}
+				else {node.display = 'block';}
 			}
-		};
+			node.style.display = 'none';
+		}
+	};
 
-		_.show = function(node, time, callback) {
-			if(time) {
-				if(_.gstyle(node, 'display') == 'none') {
-					_.css(node, 'opacity', 0);
-					node.style.display = 'block';
-				}
-				_.animate(node, 'opacity', 1, time, function() {
-					if(callback) callback();
-				});
+	_.show = function(node, time, callback, effect) {
+		if(time) {
+			if(_.gstyle(node, 'display') == 'none') {
+				_.css(node, 'opacity', 0);
+				node.style.display = 'block';
 			}
-			else {
-				node.style.display = node.display || 'block';
-			}
-		};
+			_.animate(node, 'opacity', 1, time, function() {
+				if(callback) callback();
+			}, effect);
+		}
+		else {
+			node.style.display = node.display || 'block';
+		}
+	};
 
 
-		_.extend({
-
-			'hide': function(time, callback) {
-				this.ns.forEach(function(c) {
-					_.hide(c, time, callback);
-				});
-				return this;
-			},
-			'show': function(time, callback) {
-				this.ns.forEach(function(c) {
-					_.show(c, time, callback);
-				});
-				return this;
-			},
-			'animate': function(type, terminal, time, fnName, callback) {
-				this.ns.forEach(function(c) {
-					_.animate(c, type, terminal, time, fnName, callback);
-				});
-				return this;
-			}
-
-		});
-
-	})();
+	_.extend({
+		'hide': function(time, callback, effect) {
+			this.ns.forEach(function(c) {
+				_.hide(c, time, callback, effect);
+			});
+			return this;
+		},
+		'show': function(time, callback, effect) {
+			this.ns.forEach(function(c) {
+				_.show(c, time, callback, effect);
+			});
+			return this;
+		},
+		'animate': function(type, terminal, time, effect, callback) {
+			this.ns.forEach(function(c) {
+				_.animate(c, type, terminal, time, effect, callback);
+			});
+			return this;
+		}
+	});
 
 //~ <component>
 //~	Name: Cookies
@@ -2344,7 +2589,9 @@ if(!win.JSON) {
 
 		function setCookie(name, value, days, attrs) {
 			var cookie = [name+'='+encodeURIComponent(value || '')];
-			if(days) cookie.push('max-age='+days*86400);
+			if(days) {
+				cookie.push('max-age='+parseInt(days*86400));
+			}
 			if(attrs) for(var prop in attrs) {
 				cookie.push(prop+'='+attrs[prop]);
 			}
@@ -2400,6 +2647,1223 @@ if(!win.JSON) {
 
 	_.addEvent(win, 'resize', __refreshViewport);
 
-})(window);
+})(window, document);
 
+
+//~ <component>
+//~	Name: Forms Controller
+//~	Info: Provides form emulations & form controllers
+//~ </component>
+
+
+(function(_, undefined) {
+
+	var hash = 'form___' + _.hash;
+
+	// error constructor
+
+	function ValidationError(node, test) {
+		this.node = node;
+		this.test = test;
+		this.msg = ValidationError.messages[test];
+	}
+
+	ValidationError.messages = {
+		'required': 'This field is required!',
+		'email': 'Email address is not valid!'
+	};
+
+	// form constructor
+
+	function FormController() {
+
+		this.cache = {};
+
+		this.validators = {
+			'required': function(c, errs) {
+				if(c.value == '') {
+					errs.push(new ValidationError(c, 'required'));
+					return false;
+				}
+				return true;
+			},
+			'email': function(c, errs) {
+				if(!c.value.isMail()) {
+					errs.push(new ValidationError(c, 'email'));
+					return false;
+				}
+				return true;
+			}
+		};
+
+		this.validation = {};
+		this.submition = {};
+
+	}
+
+	_.fc = new FormController();
+
+	// common wrapper
+
+	function _primaryWrap(node, name, className, value) {
+
+		var input = _('+input').attr('name', name).attr('id', name).attr('type', 'hidden');
+
+		if(value !== undefined) {
+			input.attr('value', value);
+		}
+
+		var wrap = _(node).delClass(className).wrap('div').parent().addClass(className);
+		wrap.append(input);
+
+		return wrap;
+
+	}
+
+	// data provider
+
+	function formData(node, prop, value) {
+		var data = _.provideData(node, hash, {});
+		if(data[prop] === undefined) {
+			data[prop] = value;
+		}
+		return data[prop];
+	}
+
+
+
+//~ <component>
+//~	Name: Forms Checkbox Controller
+//~	Info: Provides checkbox emulation
+//~ </component>
+
+
+	// prototype
+
+	function _RedFormsCheckbox() {
+
+		this.val = function(value) {
+			if(value === undefined) {
+				return this.value;
+			}
+			else {
+				value = value.toString();
+				if(value === 'false') {
+					this.wrap.delClass(_.fc.checkbox.selectors.checked);
+				}
+				else {
+					this.wrap.addClass(_.fc.checkbox.selectors.checked);
+				}
+				this.value = value;
+				return true;
+			}
+		};
+
+	}
+
+	// constructor
+
+	function RedFormsCheckbox(node, id, value, input) {
+
+		var	_this = this,
+			tag = node.tagName.toLowerCase();
+
+		if(tag === 'label') {
+			if(id !== undefined) {
+				node = _primaryWrap(node, id, _.fc.checkbox.selectors.checkboxWarp, value);
+			}
+			else {
+				throw Error('Not enough arguments!');
+			}
+		}
+
+		this.wrap = _(node);
+		this.input = input;
+		this.label = this.wrap.find('label');
+		this.value;
+		this.startValue;
+		this.box;
+
+		if(this.wrap.length && this.input.length && this.label.length) {
+
+			this.box = this.label.before('<span></span>').addClass(_.fc.checkbox.selectors.checkbox);
+			this.value = this.input.val();
+			this.startValue = this.value;
+
+			if(this.value == 'true') {
+				this.wrap.addClass(_.fc.checkbox.selectors.checked);
+			}
+			else {
+				this.input.val('false');
+			}
+
+			_.multi(this.box).click(function(e) {
+				if(_this.value === 'true') {
+					_this.input.val('false');
+				}
+				else {
+					_this.input.val('true');
+				}
+
+			});
+
+		}
+		else {
+			throw Error('Invalid html structure!');
+		}
+
+	}
+
+	RedFormsCheckbox.prototype = new _RedFormsCheckbox();
+
+	// obj extension
+
+	_.extend({
+		'checkbox': function(id, value) {
+			this.ns.forEach(function(c) {
+				_.fc.checkbox(c, id, value);
+			});
+			return this;
+		}
+	});
+
+	_.fc.checkbox = function(node, id, value) {
+		var input = _('input', node);
+		if(input.length && input.formData('controller') === undefined) {
+			var controller = new RedFormsCheckbox(node, id, value, input);
+			input.formData('controller', controller);
+		}
+	};
+
+	_.fc.checkbox.selectors = {
+		'checkboxWarp': 'redjs-checkbox-wrap',
+		'checkbox': 'redjs-checkbox',
+		'checked': 'redjs-checkbox-checked'
+	};
+
+
+
+
+
+
+
+//~ <component>
+//~	Name: Forms Errors Provider
+//~	Info: Form errors provider function
+//~ </component>
+
+
+_.fc.errorsProvider = function() {
+
+	var	form = _(this),
+		data = form.formData('controller');
+
+	if(data) {
+		var errs = data.errors;
+		if(errs !== undefined) {
+			errs.forEach(function(validationError) {
+
+				var	c = _(validationError.node),
+					data = c.formData('errorsprovider', {});
+
+				if(!data.wrapped) {
+					var wrap = _('+span').addClass(_.fc.errorsProvider.selectors.wrap).css({
+						'float': c.css('float'),
+						'width': c.css('width')
+					});
+					c.wrap(wrap);
+					data.wrapped = true;
+				}
+
+				if(!data.on) {
+					var errNode = _('+span').attr('title', validationError.msg).addClass(_.fc.errorsProvider.selectors.error);
+					c.parent().append(errNode).show(800, null, 'wobble');
+
+					function remove() {
+						c.unbind('change', remove);
+						errNode.remove();
+						data.on = false;
+					}
+
+					c.change(remove);
+					data.on = true;
+				}
+
+			});
+		}
+	}
+};
+
+_.fc.errorsProvider.selectors = {
+	'error': 'redjs-validation-error',
+	'wrap': 'redjs-validation-wrap'
+};
+
+//~ <component>
+//~	Name: Forms Form Controller
+//~	Info: Provides form controller
+//~ </component>
+
+
+	// prototype
+
+	function _RedForm() {
+
+		this.validate = function() {
+	
+			var inputs = this.form.find('input').include(this.form.find('textarea'));
+	
+			if(inputs.length && this.id) {
+
+				var	errs = [],
+					rules = _.fc.validation[this.id];
+
+				if(rules) {
+					inputs.each(function(c) {
+
+						var	name = c.getAttribute('name'),
+							rule = rules[name];
+
+						if(name && rule) {
+							rule = rule.split(' ');
+							for(var i = 0; rule[i]; i++) {
+								if(rule[i] in _.fc.validators) {
+									if(!_.fc.validators[rule[i]](c, errs)) {
+										break;
+									}
+								}
+							}
+						}
+
+					});
+
+					if(errs.length) {
+						this.errors = errs;
+						this.form.force('validationfail');
+						this.locked = false;
+						return false;
+					}
+				}
+			}
+			return true;
+		};
+
+		this.clear = function() {
+			var inputs = this.form.find('input').include(this.form.find('textarea'));
+			inputs.each(function(c) {
+				c = _(c);
+
+				var	controller = c.formData('controller'),
+					startVal = controller.startValue || '';
+
+				c.val(startVal);
+				c.force('blur');
+			});
+		};
+
+		this.getValues = function(obj) {
+
+			var	inputs = this.form.find('input').include(this.form.find('textarea')),
+				obj = obj || {};
+
+			inputs.each(function(c) {
+				var id = c.name || c.id;
+				if(id) {
+					obj[id] = c.value;
+				}
+			});
+			return obj;
+		};
+
+		this.setValues = function(param, flag) {
+			var inputs = this.form.find('input').include(this.form.find('textarea'));
+			if(flag) {
+				this.clear();
+			}
+			inputs.each(function(c) {
+				var id = c.name || c.id;
+				if(param[id] !== undefined) {
+					c = _(c);
+					c.force('focus');
+					c.val(param[id]);
+				}
+			});
+		};
+
+	}
+
+	// constructor
+
+	function RedForm(node) {
+
+		// ini
+
+		var _this = this;
+
+		this.form = _(node);
+		this.id = node.id;
+		this.locked = false;
+		this.errors;
+
+		if(this.id) {
+			_.fc.cache[this.id] = this.form;
+		}
+
+		_('.' + _.fc.selectbox.selectors.selectWarp, node).selectbox();
+		_('.' + _.fc.checkbox.selectors.checkboxWarp, node).checkbox();
+		_('.' + _.fc.radiobox.selectors.radioboxWarp, node).radiobox();
+
+		_('input', node).filter(function() {
+			var type = _(this).attr('type');
+			return type === 'text' || type === 'password';
+		}).placeholder();
+
+
+
+		function submit(e) {
+			if(_.fc.submition[_this.id]) {
+				e.preventDefault();
+				if(!_this.locked) {
+					_this.locked = true;
+					if(_this.validate()) {
+						_.fc.submition[_this.id].call(_this.form);
+					}
+					else {
+						_this.locked = false;
+					}
+				}
+			}
+			else {
+				if(!_this.validate()) {
+					e.preventDefault();
+				}
+			}
+		}
+
+		_('.' + _.fc.form.selectors.submit, node).click(submit);
+		_this.form.submit(submit);
+
+		this.form.bind('validationfail', _.fc.errorsProvider);
+	}
+
+	RedForm.prototype = new _RedForm();
+
+	// obj extension
+
+	_.extend({
+		'form': function() {
+			this.ns.forEach(function(c) {
+				_.fc.form(c);
+			});
+			return this;
+		}
+	});
+
+	_.fc.form = function(node) {
+		if(formData(node, 'controller') === undefined) {
+			var controller = new RedForm(node);
+			formData(node, 'controller', controller);
+		}
+	};
+
+	_.fc.form.selectors = {
+		'disabled': 'redjs-disabled',
+		'submit': 'redjs-submit'
+	};
+
+
+//~ <component>
+//~	Name: Forms Placeholder Controller
+//~	Info: Provides placeholder emulation
+//~ </component>
+
+
+	// placeholder
+
+	function _RedFormsPlaceholder() {
+
+		this.checkAutofilling = function() {
+			if(this.input.val() === '') {
+				this.placeholder.show(200);
+			}
+			else {
+				this.placeholder.hide(200);
+			}
+		};
+
+	}
+
+	function RedFormsPlaceholder(node) {
+
+		this.placeholder;
+		this.wrap;
+		this.input = _(node);
+		this.ptext = this.input.attr('placeholder');
+
+		var inputType = this.input.attr('type');
+
+		if(this.ptext && (inputType === 'text' || inputType === 'password')) {
+
+			var	height = this.input.height(true, true)+'px',
+				_this = this,
+				timer;
+
+			this.input.attr('placeholder', '');
+
+			this.wrap = _('+div').addClass(_.fc.placeholder.selectors.placeholderWrap).css('float', this.input.css('float'));
+			this.placeholder = _('+div').addClass(_.fc.placeholder.selectors.placeholder).html(this.ptext).css({
+					'height': height,
+					'lineHeight': height,
+					'textIndent': this.input.css('textIndent'),
+					'paddingLeft': this.input.css('paddingLeft'),
+					'opacity': 0
+				});
+
+			this.wrap.append(this.placeholder);
+			this.input.wrap(this.wrap.ns[0]);
+
+			function check() {
+				timer = setTimeout(function() {
+					var form = _this.input.parent('form');
+					if(form) {
+						form.find('input').each(function(c) {
+							if(c !== node) {
+								c = _(c);
+								var type = c.attr('type');
+								if(type === 'text' || type === 'password') {
+									var controller = c.formData('controller');
+									if(controller) {
+										controller.checkAutofilling();
+									}
+								}
+							}
+						});
+					}
+				}, 60);
+			}
+
+			check();
+
+			this.input.focus(function() {
+				_this.input.keyup(check);
+				_this.placeholder.hide(200);
+				_this.input.delClass(_.fc.placeholder.selectors.transparentText);
+			});
+
+			this.input.blur(function() {
+				_this.input.unbind('keyup', check);
+				if(!_this.input.val()) {
+					_this.placeholder.show(200);
+					_this.input.addClass(_.fc.placeholder.selectors.transparentText);
+				}
+			});
+
+		}
+
+	}
+
+	RedFormsPlaceholder.prototype = new _RedFormsPlaceholder();
+
+	_.extend({
+		'placeholder': function() {
+			this.ns.forEach(function(c) {
+				_.fc.placeholder(c);
+			});
+			return this;
+		}
+	});
+
+	_.fc.placeholder = function(node) {
+		if(_.formData(node, 'controller') === undefined) {
+			var controller = new RedFormsPlaceholder(node);
+			_.formData(node, 'controller', controller);
+		}
+	};
+
+	_.fc.placeholder.selectors = {
+		'placeholderWrap': 'redjs-input-placeholder-wrap',
+		'placeholder': 'redjs-input-placeholder',
+		'transparentText': 'redjs-transparent-text'
+	};
+
+//~ <component>
+//~	Name: Forms Radiobox Controller
+//~	Info: Provides radiobox emulation
+//~ </component>
+
+
+	// prototype
+
+	function _RedFormsRadiobox(node) {
+
+		this.val = function(value) {
+			if(value === undefined) {
+				return this.value;
+			}
+			else {
+				value = value.toString();
+				for(var i = 0, l = this.li.length; i < l; i++) {
+					c = this.li.eq(i).find('label');
+					if(c.html().trim() === value) {
+						this.li.delClass(_.fc.radiobox.selectors.checked).eq(i).addClass(_.fc.radiobox.selectors.checked);
+						this.value = value;
+						return true;
+					}
+				}
+				return false;
+			}
+		};
+
+	}
+
+	// constructor
+
+	function RedFormsRadiobox(node, id, value, input) {
+
+		var	_this = this,
+			tag = node.tagName.toLowerCase();
+
+		if(tag === 'ul') {
+			if(id !== undefined) {
+				node = _primaryWrap(node, id, _.fc.radiobox.selectors.radioboxWarp, value);
+			}
+			else {
+				throw Error('Not enough arguments!');
+			}
+		}
+
+		this.wrap = _(node);
+		this.input = input;
+		this.ul = this.wrap.find('ul');
+		this.value;
+		this.startValue;
+		this.li;
+
+		if(this.wrap.length && this.input.length && this.ul.length) {
+
+			var	defaultFlag = true,
+				value = _this.input.val();
+
+			this.startValue = value;
+
+			this.li = this.ul.find('li').each(function(c, i) {
+
+				c = _(c);
+
+				var	text = c.html().trim(),
+					label = c.wrapInner('label').find('label'),
+					box = label.before('<span></span>').addClass(_.fc.radiobox.selectors.radiobox);
+
+				if(text == value) {
+					c.addClass(_.fc.radiobox.selectors.checked);
+					defaultFlag = false;
+					_this.value = value;
+				}
+
+				_.multi(box).click(function(e) {
+
+					if(!_(this).parent('li').hasClass(_.fc.radiobox.selectors.checked)) {
+						_this.li.delClass(_.fc.radiobox.selectors.checked).eq(i).addClass(_.fc.radiobox.selectors.checked);
+						_this.input.val(text);
+						_this.value = text;
+					}
+
+				});
+
+			});
+
+			if(defaultFlag) {
+				this.li.eq(0).children('label').click();
+			}
+
+		}
+		else {
+			throw Error('Invalid html structure!');
+		}
+	}
+
+	RedFormsRadiobox.prototype = new _RedFormsRadiobox();
+
+	// obj extension
+
+	_.extend({
+		'radiobox': function(id, value) {
+			this.ns.forEach(function(c) {
+				_.fc.radiobox(c, id, value);
+			});
+			return this;
+		}
+	});
+
+	_.fc.radiobox = function(node, id, value) {
+		var input = _('input', node);
+		if(input.length && input.formData('controller') === undefined) {
+			var controller = new RedFormsRadiobox(node, id, value, input);
+			input.formData('controller', controller);
+		}
+	};
+
+	_.fc.radiobox.selectors = {
+		'radioboxWarp': 'redjs-radio-wrap',
+		'radiobox': 'redjs-radiobox',
+		'checked': 'redjs-radiobox-checked'
+	};
+
+
+
+//~ <component>
+//~	Name: Forms Selectbox Controller
+//~	Info: Provides selectbox emulation
+//~ </component>
+
+
+	// prototype
+
+	function _RedFormsSelect(node) {
+
+		this.val = function(value) {
+			if(value === undefined) {
+				return this.value;
+			}
+			else {
+				value = value.toString();
+				for(var i = 0, l = this.li.length; i < l; i++) {
+					var c = this.li.eq(i);
+					if(c.html().trim() === value) {
+						this.li.delClass(_.fc.selectbox.selectors.checked).eq(i).addClass(_.fc.selectbox.selectors.checked);
+						this.current.html(value);
+						this.value = value;
+						return true;
+					}
+				}
+				return false;
+			}
+		};
+
+	}
+
+	// constructor
+
+	function RedFormsSelect(node, id, value, input) {
+
+		var	_this = this,
+			tag = node.tagName.toLowerCase();
+
+		if(tag === 'ul') {
+			if(id !== undefined) {
+				node = _primaryWrap(node, id, _.fc.selectbox.selectors.selectboxWarp, value);
+			}
+			else {
+				throw Error('Not enough arguments!');
+			}
+		}
+
+		this.wrap = _(node);
+		this.input = input;
+		this.ul = this.wrap.find('ul');
+		this.value;
+		this.startValue;
+		this.current;
+		this.li;
+
+		if(this.wrap.length && this.input.length && this.ul.length) {
+
+			this.current = this.ul.before('<span></span>').addClass(_.fc.selectbox.selectors.selectCurrent);
+
+			var	ico = this.ul.before('<span></span>').addClass(_.fc.selectbox.selectors.selectIco),
+				slectBody = this.ul.wrap('div', {'className': _.fc.selectbox.selectors.selectBody}).parent();
+
+			this.li = this.ul.find('li').each(function(c, i) {
+
+				c = _(c);
+
+				var text = c.html().trim();
+
+				c.attr('title', text);
+				if(text === _this.input.val()) {
+					_this.current.html(text);
+					c.addClass(_.fc.selectbox.selectors.checked);
+					_this.value = text;
+					_this.startValue = text;
+				}
+
+				c.click(function() {
+					if(text !== _this.value) {
+						_this.input.val(text);
+					}
+				});
+
+			});
+
+		}
+		else {
+			throw Error('Invalid html structure!');
+		}
+
+	}
+
+	RedFormsSelect.prototype = new _RedFormsSelect();
+
+	// obj extension
+
+	_.extend({
+		'selectbox': function(id, value) {
+			this.ns.forEach(function(c) {
+				_.fc.selectbox(c, id, value);
+			});
+			return this;
+		}
+	});
+
+	_.fc.selectbox = function(node, id, value) {
+		var input = _('input', node);
+		if(input.length && input.formData('controller') === undefined) {
+			var controller = new RedFormsSelect(node, id, value, input);
+			input.formData('controller', controller);
+		}
+	};
+
+	_.fc.selectbox.selectors = {
+		'selectWarp': 'redjs-select-wrap',
+		'selectBody': 'redjs-select-body',
+		'selectCurrent': 'redjs-select-current',
+		'selectIco': 'redjs-select-ico',
+		'checked': 'redjs-select-selected'
+	};
+
+
+
+	// public API
+
+	_.formData = formData;
+
+	_.extend({
+
+		'formData': function(prop, value) {
+			if(this.ns[0]) {
+				return formData(this.ns[0], prop, value);
+			}
+		},
+		'val': function(value, add) {
+			if(value !== undefined) {
+				this.ns.forEach(function(c) {
+					var controller = formData(c, 'controller');
+					if(controller) {
+						if('val' in controller) {
+							if(controller.val(value)) {
+								c.value = value;
+							}
+						}
+						else if('setValues' in controller) {
+							return controller.setValues(value, add);
+						}
+						else {
+							c.value = value;
+						}
+					}
+					else {
+						c.value = value;
+					}
+				});
+				return this;
+			}
+			else {
+				if(this.ns[0]) {
+					var controller = formData(this.ns[0], 'controller');
+					if(controller) {
+						if('val' in controller) {
+							return controller.val();
+						}
+						else if('getValues' in controller) {
+							return controller.getValues(add);
+						}
+						else {
+							return this.ns[0].value;
+						}
+					}
+					else {
+						return this.ns[0].value;
+					}
+				}
+			}
+		}
+
+	});
+
+})(redjs);
+
+//~ <component>
+//~	Name: RedJS UI
+//~	Info: UI library
+//~ </component>
+
+
+(function(_, undefined) {
+
+	_.ui = {'cache': {}};
+
+	var hash = 'ui___'+_.hash;
+
+	// data provider
+
+	function uiData(node, prop, value) {
+		var data = _.provideData(node, hash, {});
+		if(data[prop] === undefined) {
+			data[prop] = value;
+		}
+		return data[prop];
+	}
+
+
+
+//~ <component>
+//~	Name: RedJS UI Menus
+//~	Info: Menus module
+//~ </component>
+
+
+	_.ui.menu = function(wrap) {
+
+			var	_this = _.ui.menu,
+				wrap = _(wrap),
+				submenu = '.'+_this.selectors.submenu,
+				hover = _this.selectors.hover,
+				delay = _this.options.delay,
+				duration = _this.options.duration;
+
+			wrap.find(submenu).hide();
+
+			function fixPoints(parent) {
+
+				var	children = parent.children('li'),
+					current,
+					timer;
+
+				children.each(function(c, i) {
+
+					var	c = _(c),
+						sub = c.find(submenu).eq(0);
+
+					c.mouseenter(function(e) {
+						if(sub.length > 0) {
+							if(current !== undefined) {
+								clearTimeout(timer);
+								if(current !== c) current.delClass(hover).find(submenu).hide();
+							}
+							sub.show(duration);
+							current = c;
+						}
+						c.addClass(hover);
+					});
+					c.mouseleave(function(e) {
+						if(sub.length === 0) {c.delClass(hover);}
+						else timer = setTimeout(function() {
+							c.delClass(hover).find(submenu).hide();
+							current = undefined;
+						}, delay);
+					});
+
+					fixPoints(sub);
+				});
+
+			};
+
+			fixPoints(wrap);
+
+	};
+
+	_.ui.menu.selectors = {
+		'submenu': 'redjs-menu-sub',
+		'hover': 'redjs-hover'
+	};
+
+	_.ui.menu.options = {
+		'delay': 800,
+		'duration': 300
+	};
+
+	_.extend({
+		'menu': function() {
+			this.ns.forEach(function(c) {
+				_.ui.menu(c);
+			});
+			return this;
+		}
+	});
+
+//~ <component>
+//~	Name: RedJS UI Popups
+//~	Info: Popups module
+//~ </component>
+
+
+	// ini method
+
+	_.ui.popup = function(node) {
+
+		var	id = node.getAttribute('id'),
+			data = uiData(node, 'popup', {}),
+			popup = _(node),
+			closer = _('.'+_.ui.popup.selectors.closer, node),
+			caller = _('#'+id+'_caller');
+
+		if(id) {
+			_.ui.cache[id] = popup;
+		}
+
+		closer.click(function(e) {
+			e.preventDefault();
+			_.ui.popup.close(popup);
+		});
+
+		caller.click(function(e) {
+			e.preventDefault();
+			_.ui.popup.open(popup);
+		});
+	};
+
+	_.ui.popup.selectors = {
+		'closer': 'redjs-popup-closer',
+		'shellActive': 'redjs-popup-shell',
+		'shellInactive': 'redjs-popup-shell-inactive'
+	};
+
+	_.ui.popup.shell = new function() {
+		this.active = _('+div').addClass(_.ui.popup.selectors.shellActive);
+		this.inactive = _('+div').addClass(_.ui.popup.selectors.shellInactive);
+	};
+
+
+	_.ui.popup.effects = {
+		'fade': {
+			'show': function(popup, callback) {
+				popup.show(250, callback);
+			},
+			'hide': function(popup, callback) {
+				popup.hide(250, callback);
+			}
+		}
+	};
+
+	_.ui.popup.lastOpened = undefined;
+	_.ui.popup.defaultEffect = 'fade';
+	_.ui.popup.queue = [];
+
+
+	// controll methods
+
+	_.ui.popup.open = function(popup, fn) {
+		var pptype = _.type(popup);
+		if(pptype == _.type.redjs) {
+
+			if(_.ui.popup.lastOpened === undefined) {
+				this.shell.active.show();
+			}
+			else {
+				var lastOpened = _.ui.cache[_.ui.popup.lastOpened];
+				if(lastOpened && lastOpened.attr('id') != popup.attr('id')) {
+					var fn = fn || _.ui.popup.defaultEffect;
+					_.ui.popup.effects[fn].hide(lastOpened);
+				}
+			}
+
+			var id = popup.attr('id');
+			_.ui.popup.lastOpened = id;
+			_.ui.popup.queue.delByVal(id).unshift(id);
+
+			popup.force('open');
+
+			var fn = fn || _.ui.popup.defaultEffect;
+			_.ui.popup.effects[fn].show(popup, function() {
+				popup.force('opened');
+			});
+
+		}
+	};
+
+	_.ui.popup.close = function(popup, all) {
+		var pptype = _.type(popup);
+		if(pptype == _.type.redjs) {
+
+			var id = popup.attr('id');
+			_.ui.popup.lastOpened = _.ui.popup.queue.delByVal(id)[0];
+
+			if(_.ui.popup.lastOpened === undefined || all) {
+				this.shell.active.hide();
+			}
+			else {
+				var lastOpened = _.ui.cache[_.ui.popup.lastOpened];
+				if(lastOpened) {
+					var fn = fn || _.ui.popup.defaultEffect;
+					_.ui.popup.effects[fn].show(lastOpened);
+				}
+			}
+
+			popup.force('close');
+
+			var fn = fn || _.ui.popup.defaultEffect;
+			_.ui.popup.effects[fn].hide(popup, function() {
+				popup.force('closed');
+			});
+		}
+		else {
+			_.ui.popup.queue.forEach(function(c) {
+				_.ui.cache[c].force('close');
+				_.ui.cache[c].force('closed');
+			});
+			_.ui.popup.queue = [];
+			_.ui.popup.close(_.ui.cache[_.ui.popup.lastOpened], true);
+			_.ui.lastOpened = undefined;
+		}
+	};
+
+
+	_(document).bind('ready', function() {
+
+		var body = _('body');
+
+		body.firstChild(_.ui.popup.shell.inactive.ns[0]);
+		body.firstChild(_.ui.popup.shell.active.ns[0]);
+
+		_.ui.popup.shell.active.click(function() {
+			_.ui.popup.close();
+		});
+
+	});
+
+	_.extend({
+		'popup': function() {
+			this.ns.forEach(function(c) {
+				_.ui.popup(c);
+			});
+			return this;
+		}
+	});
+
+//~ <component>
+//~	Name: RedJS UI Tabs
+//~	Info: Tabs module
+//~ </component>
+
+
+	_.ui.tab = function(node, params) {
+
+		var	_this = _.ui.tab,
+			wrap = _(node),
+			id = wrap.attr('id'),
+			children = wrap.children(),
+			data = uiData(node, 'tab', {}),
+
+			head = _this.selectors.head,
+			content = _this.selectors.content,
+			current = _this.selectors.current,
+			params = params || {};
+
+		if(id) {_.ui.cache[id] = node;}
+
+		data.contents = wrap.find('.'+content).children();
+		data.headers = wrap.find('.'+head);
+		data.current = 0;
+
+		if('tab-selector' in params) {
+			data.headers = data.headers.find(params['tab-selector']);
+		}
+		else {
+			data.headers = data.headers.children();
+		}
+
+		data.headers.each(function(c, i) {
+			c = _(c);
+			c.click(function(e) {
+				e.stopPropagation();
+				if(!c.hasClass(current)) {
+					data.current = i;
+					wrap.force('tabIndexChanged');
+					data.headers.delClass(current).eq(i).addClass(current);
+					data.contents.hide().eq(i).show(params.speed);
+				}
+			});
+		});
+
+	};
+
+	_.ui.tab.selectors = {
+		'head': 'tabs-header',
+		'content': 'tabs-content',
+		'current': 'current'
+	};
+
+	_.extend({
+		'tab': function(params) {
+			this.ns.forEach(function(c) {
+				_.ui.tab(c, params);
+			});
+			return this;
+		}
+	});
+
+//~ <component>
+//~	Name: RedJS UI Tree
+//~	Info: Tree module
+//~ </component>
+
+
+	_.ui.tree = function(node) {
+
+			var	wrap = _(node),
+				id = wrap.attr('id'),
+				data = uiData(node, 'tree', {}),
+
+				back = _.ui.tree.selectors.back,
+
+				children = data.branches = wrap.children(),
+				back = data.back = _('.'+back, node).click(toStart);
+
+			if(id) {_.ui.cache[id] = node;}
+
+			for(var i = 0, l = children.length; i < l; i++) {
+				var child = children.eq(i);
+				if(child.css('display') != 'none') {
+					data.start = child;
+					break;
+				}
+			}
+
+			function toStart() {
+				data.branches.hide();
+				data.start.show();
+			}
+
+			data.toStart = toStart;
+	};
+
+	_.ui.tree.selectors = {
+		'back': 'back'
+	};
+
+	_.extend({
+		'tree': function() {
+			this.ns.forEach(function(c) {
+				_.ui.tree(c);
+			});
+			return this;
+		}
+	});
+
+
+	// public API
+
+	_.uiData = uiData;
+
+	_.extend({
+
+		'uiData': function(prop, value) {
+			if(this.ns[0]) {
+				return _.uiData(this.ns[0], prop, value);
+			}
+		}
+
+	});
+
+})(redjs);
 

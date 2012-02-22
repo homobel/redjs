@@ -21,15 +21,18 @@
 		return this.replace(/-\D/g, function(match) {
 			return match.charAt(1).toUpperCase();
 		});
-
 	};
 
 	S.toInt = function(base) {
 		return parseInt(this, base || 10);
 	};
 
-	S.toFloat = function(base) {
+	S.toFloat = function() {
 		return parseFloat(this);
+	};
+
+	S.toNumber = function() {
+		return ~this.indexOf('.') ? this.toFloat() :  this.toInt();
 	};
 
 	function tenBasedColor(string) {
@@ -78,6 +81,20 @@
 			}).join('');
 		}
 		return false;
+	};
+
+	S.trim = function(chars) {
+		return this.ltrim(chars).rtrim(chars);
+	};
+
+	S.ltrim = function(chars) {
+		chars = chars || '\\s';
+		return this.replace(new RegExp('^[' + chars + ']+', 'g'), '');
+	};
+
+	S.rtrim = function(chars) {
+		chars = chars || '\\s';
+		return this.replace(new RegExp('[' + chars + ']+$', 'g'), '');
 	};
 
 })(String.prototype);

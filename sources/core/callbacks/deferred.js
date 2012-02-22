@@ -1,7 +1,7 @@
 
 //~ <component>
 //~	Name: Deferred
-//~	Info: Provide callbacks API
+//~	Info: Provides callbacks API
 //~ </component>
 
 (function() {

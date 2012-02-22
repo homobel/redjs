@@ -76,7 +76,12 @@
 					clearInterval(resptimer);
 					var resp = (params.accept == 'xml')?xmlreq.responseXML:xmlreq.responseText;
 					if(params.accept == 'json') {
-						resp = JSON.parse(resp);
+						try {
+							resp = JSON.parse(resp);
+						}
+						catch(e) {
+							resp = {};
+						}
 					}
 					d.resolve(params.context, resp);
 				}

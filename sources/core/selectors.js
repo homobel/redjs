@@ -17,7 +17,7 @@
 	function getNodeByIdAndParent(name, node) {
 		var children = _.children(node);
 		for(var i = 0, l = children.length; i < l; i++) {
-			if(children[i].id == name) {
+			if(children[i].getAttribute('id') == name) {
 				return children[i];
 			}
 			else {

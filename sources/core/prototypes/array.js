@@ -25,6 +25,11 @@
 		return this;
 	};
 
+	A.delByVal = function(value) {
+		this.del(this.indexOf(value));
+		return this;
+	};
+
 	A.linear = function() {
 		var M = [];
 		function linear(m) {

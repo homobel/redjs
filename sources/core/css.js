@@ -123,7 +123,7 @@
 			if(border) {
 				var	borderLeftWidth = _.gstyle(node, 'borderLeftWidth').toInt() || 0,
 					borderRightWidth = _.gstyle(node, 'borderRightWidth').toInt() || 0;
-				width += borderTopWidth + borderBottomWidth;
+				width += borderLeftWidth + borderRightWidth;
 			}
 			if(margin) {
 				var	marginLeft = _.gstyle(node, 'marginLeft').toInt() || 0,
@@ -187,29 +187,41 @@
 		};
 
 		_.extend({
-
 			'css': function(name, value) {
-				if(value !== undefined || name instanceof Object) {
+				if(value !== undefined || typeof name == 'object') {
 					this.ns.forEach(function(c) {
 						_.css(c, name, value);
 					});
 				}
 				else {
-					if(this.ns[0]) return _.css(this.ns[0], name);
+					if(this.ns[0]) {
+						return _.css(this.ns[0], name);
+					}
+					return '';
 				}
 				return this;
 			},
 			'height': function(padding, border, margin) {
-				if(this.ns[0]) return _.height(this.ns[0], padding, border, margin);
+				if(this.ns[0]) {
+					return _.height(this.ns[0], padding, border, margin);
+				}
+				return 0;
 			},
 			'width': function(padding, border, margin) {
-				if(this.ns[0]) return _.width(this.ns[0], padding, border, margin);
+				if(this.ns[0]) {
+					return _.width(this.ns[0], padding, border, margin);
+				}
+				return 0;
 			},
-
 			'offset': function(padding, border, margin) {
-				if(this.ns[0]) return _.offset(this.ns[0]);
+				if(this.ns[0]) {
+					return _.offset(this.ns[0]);
+				}
+				return {
+					'top': 0,
+					'left': 0
+				};
 			}
-
 		});
 
 	})();
