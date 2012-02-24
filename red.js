@@ -1374,7 +1374,7 @@
 			}
 			else {
 				if(typeof child == 'string') {
-					child= _.create(child);
+					child = _.create(child);
 				}
 				if(node.firstChild) {
 					node.insertBefore(child, node.firstChild);
@@ -3043,7 +3043,6 @@ _.fc.errorsProvider.selectors = {
 		_('.' + _.fc.form.selectors.submit, node).click(submit);
 		_this.form.submit(submit);
 
-		this.form.bind('validationfail', _.fc.errorsProvider);
 	}
 
 	RedForm.prototype = new _RedForm();

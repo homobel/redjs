@@ -188,7 +188,7 @@
 			}
 			else {
 				if(typeof child == 'string') {
-					child= _.create(child);
+					child = _.create(child);
 				}
 				if(node.firstChild) {
 					node.insertBefore(child, node.firstChild);

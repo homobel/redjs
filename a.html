@@ -1,0 +1,19 @@
+﻿<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Test page</title>
+        <script type="text/javascript" src="red.js"></script>
+        <script type="text/javascript">
+            _.bind(document, 'ready', function() {
+                _('body').append('<span>Hello world!</span>');
+            });
+        </script>
+    </head>
+    <body>
+         <div>Some content</div>
+         <script type="text/javascript">
+            _.force(document, 'ready');
+        </script>
+    </body>
+</html>
