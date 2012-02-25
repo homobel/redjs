@@ -2356,10 +2356,11 @@ if(!win.JSON) {
 		}
 
 		function ajaxParams(params) {
-			if(!(params instanceof Object)) {
+			var type = _.type(params);
+			if(type.is('string')) {
 				this.url = params;
 			}
-			else {
+			else if(type.is('object')) {
 				for(var prop in params) {
 					this[prop] = params[prop];
 				}
