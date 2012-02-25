@@ -152,17 +152,6 @@
 		return index;
 	};
 
-	A.toggle = function(n) {
-		var index = this.indexOf(n);
-		if(index == -1) {
-			this.push(n);
-		}
-		else {
-			this.del(index);
-		}
-		return index;
-	};
-
 })(Array.prototype);
 
 
@@ -286,7 +275,7 @@
 		return parseInt(this, base || 10);
 	};
 
-	N.toFloat = function(base) {
+	N.toFloat = function() {
 		return parseFloat(this);
 	};
 
@@ -302,7 +291,7 @@
 
 	var	redjs = function(name, node) {return new RedCollection(name, node);},
 		_ = redjs,
-		hash = ('redjs'+Math.random()).replace('.', ''),
+		hash = ('redjs' + Math.random()).replace('.', ''),
 		type = getType,
 		htmlNode = doc.documentElement,
 		headNode = doc.getElementsByTagName('head')[0],
@@ -313,6 +302,8 @@
 	_.hash = hash;
 	_.version = '0.8.1';
 	_.proto = {};
+
+	_.slice = slice;
 
 	function RedCollection(name, context) {
 		this.ns = getNodes(name, context);
@@ -332,7 +323,9 @@
 	_.extend = function(obj) {
 		if(typeof obj == 'object') {
 			for(var prop in obj) {
-				if(obj.hasOwnProperty(prop)) _.proto[prop] = obj[prop];
+				if(obj.hasOwnProperty(prop)) {
+					_.proto[prop] = obj[prop];
+				}
 			}
 		}
 	};
@@ -344,93 +337,89 @@
 //~ </component>
 
 
-	(function() {
-
-		function Browser() {
-			this.value = 'unknown';
-			this.version = Browser.ie.version();
-			Browser.variants.forEach(function(c) {
-				this[c] = !!~Browser.str.indexOf(c);
-				if(this[c]) {
-					this.value = c;
-				}
-			}, this);
-			if(this.version !== undefined) {
-				if(!this.msie) {
-					this[this.value] = false;
-					this.value = 'msie';
-					this.msie = true;
-				}
+	function Browser() {
+		this.value = 'unknown';
+		this.version = Browser.ie.version();
+		Browser.variants.forEach(function(c) {
+			this[c] = !!~Browser.str.indexOf(c);
+			if(this[c]) {
+				this.value = c;
 			}
-			this.features = {};
-			this.toString = function() {
-				return this.value;
+		}, this);
+		if(this.version !== undefined) {
+			if(!this.msie) {
+				this[this.value] = false;
+				this.value = 'msie';
+				this.msie = true;
 			}
 		}
-
-		Browser.str = (navigator.userAgent || navigator.vendor || '').toLowerCase();
-		Browser.variants = ['msie', 'chrome', 'firefox', 'opera', 'safari', 'kde', 'camino'];
-		Browser.ie = {
-			'variants': [6, 7, 8, 9],
-			'version': function() {
-				var html = [];
-				this.variants.forEach(function(c) {
-					html.push('<!--[if IE '+c+']><div title="'+c+'"></div><![endif]-->');
-				});
-				testNode.innerHTML = html.join();
-				var node = testNode.getElementsByTagName('div')[0];
-				if(node) {
-					return node.getAttribute('title');
-				}
-				return undefined;
-			}
-		};
-
-		function Platform() {
-			this.value = 'unknown';
-			Platform.variants.forEach(function(c) {
-				this[c] = !!~Platform.str.indexOf(c);
-				if(this[c]) {
-					this.value = c;
-				}
-			}, this);
-			this.toString = function() {
-				return this.value;
-			}
+		this.features = {};
+		this.toString = function() {
+			return this.value;
 		}
+	}
 
-		Platform.str = navigator.platform.toLowerCase();
-		Platform.variants = ['win', 'mac', 'linux', 'iphone', 'ipod'];
-
-		var	browser = new Browser(),
-			platform = new Platform(),
-			ielt9 = '\v' == 'v' && browser.msie;
-
-		// features detection
-
-
-
-		function Features() {
-
-			testNode.innerHTML = '<div style="float: left; opacity: .99"></div>';
-			var testNodeChild = testNode.getElementsByTagName('div')[0];
-
-			this.JSON = !!win.JSON;
-			this.getElementsByClassName = !!doc.getElementsByClassName;
-			this.mouseenter = 'onmouseenter' in htmlNode;
-			this.mouseleave = 'onmouseleave' in htmlNode;
-			this.opacity = testNodeChild.style.opacity.charAt(0) == '0';
-			this.cssFloat = testNodeChild.style.cssFloat == 'left';
-
+	Browser.str = (navigator.userAgent || navigator.vendor || '').toLowerCase();
+	Browser.variants = ['msie', 'chrome', 'firefox', 'opera', 'safari', 'kde', 'camino'];
+	Browser.ie = {
+		'variants': [6, 7, 8, 9],
+		'version': function() {
+			var html = [];
+			this.variants.forEach(function(c) {
+				html.push('<!--[if IE ' + c + ']><div title="' + c + '"></div><![endif]-->');
+			});
+			testNode.innerHTML = html.join();
+			var node = testNode.getElementsByTagName('div')[0];
+			if(node) {
+				return node.getAttribute('title');
+			}
+			return undefined;
 		}
+	};
 
-		browser.features = new Features();
+	function Platform() {
+		this.value = 'unknown';
+		Platform.variants.forEach(function(c) {
+			this[c] = !!~Platform.str.indexOf(c);
+			if(this[c]) {
+				this.value = c;
+			}
+		}, this);
+		this.toString = function() {
+			return this.value;
+		}
+	}
 
-		_.browser = browser;
-		_.platform = platform;
-		_.ielt9 = ielt9;
+	Platform.str = navigator.platform.toLowerCase();
+	Platform.variants = ['win', 'mac', 'linux', 'iphone', 'ipod'];
 
-	})();
+
+	var	browser = new Browser(),
+		platform = new Platform(),
+		ielt9 = '\v' == 'v' && browser.msie;
+
+
+	// features detection
+
+	function Features() {
+
+		testNode.innerHTML = '<div style="float: left; opacity: .99"></div>';
+		var testNodeChild = testNode.getElementsByTagName('div')[0];
+
+		this.JSON = !!win.JSON;
+		this.getElementsByClassName = !!doc.getElementsByClassName;
+		this.mouseenter = 'onmouseenter' in htmlNode;
+		this.mouseleave = 'onmouseleave' in htmlNode;
+		this.opacity = testNodeChild.style.opacity.charAt(0) == '0';
+		this.cssFloat = testNodeChild.style.cssFloat == 'left';
+
+	}
+
+	browser.features = new Features();
+
+	_.browser = browser;
+	_.platform = platform;
+	_.ielt9 = ielt9;
 
 
 //~ <component>
@@ -505,7 +494,9 @@
 
 	function isEmptyObj(obj) {
 		for(var prop in obj) {
-			if(obj.hasOwnProperty(prop)) return false;
+			if(obj.hasOwnProperty(prop)) {
+				return false;
+			}
 		}
 		return true;
 	}
@@ -514,17 +505,17 @@
 
 
 	function joinObj() {
-		var O = new Object();
+		var Obj = new Object();
 		for(var i = 0; i<arguments.length; i++) {
 			if(arguments[i]) {
 				for(var p in arguments[i]) {
 					if(arguments[i].hasOwnProperty(p)) {
-						O[p] = arguments[i][p];
+						Obj[p] = arguments[i][p];
 					}
 				}
 			}
 		}
-		return O;
+		return Obj;
 	};
 
 	_.joinObj = joinObj;
@@ -819,90 +810,83 @@
 
 (function() {
 
-	var slice = Array.prototype.slice, _FuncList = {
-		'exec' : function(obj) {
-			this.calls++;
-			var args = arguments;
-			this.list.forEach(function(c) {
-				c.apply(obj, slice.call(args, 1));
-			});
-
-			return this;
-		},
-
-		'add' : function(func) {
-			if(func && func.call) {
-				this.list.push(func);
-			}
-			return this;
-		},
-
-		'del' : function(func, flag) {
-			var n = this.list.indexOf(func);
-			if(flag) {
-				while(~n) {
-					this.list.del(n);
-					n = this.list.indexOf(func);
+	var	slice = Array.prototype.slice, _FuncList = {
+			'exec' : function(obj) {
+				this.calls++;
+				var args = arguments;
+				this.list.forEach(function(c) {
+					c.apply(obj, slice.call(args, 1));
+				});
+	
+				return this;
+			},
+			'add' : function(func) {
+				if(func && func.call) {
+					this.list.push(func);
 				}
-			}
-			else {
-				this.list.del(n);
-			}
-			return this;
-		}
-
-	}, _Deferred = {
-		'resolve' : function(context) {
-			if(this.status == -1) {
-				this.status = 1;
-				this.context = context;
-				this.arg = slice.call(arguments, 1);
-				this.successList.exec.apply(this.successList, arguments);
-				this.anywayList.exec.apply(this.anywayList, arguments);
-			}
-		},
-
-		'reject' : function(context) {
-			if(this.status == -1) {
-				this.status = 0;
-				this.context = context;
-				this.arg = slice.call(arguments, 1);
-				this.errorList.exec.apply(this.errorList, arguments);
-				this.anywayList.exec.apply(this.anywayList, arguments);
+				return this;
+			},
+			'del' : function(func, flag) {
+				var n = this.list.indexOf(func);
+				if(flag) {
+					while(~n) {
+						this.list.del(n);
+						n = this.list.indexOf(func);
+					}
+				}
+				else {
+					this.list.del(n);
+				}
+				return this;
 			}
 		},
-
-		'success' : function(func) {
-			if(this.status == -1) {
-				this.successList.add(func);
+		_Deferred = {
+			'resolve' : function(context) {
+				if(this.status == -1) {
+					this.status = 1;
+					this.context = context;
+					this.arg = slice.call(arguments, 1);
+					this.successList.exec.apply(this.successList, arguments);
+					this.anywayList.exec.apply(this.anywayList, arguments);
+				}
+			},
+			'reject' : function(context) {
+				if(this.status == -1) {
+					this.status = 0;
+					this.context = context;
+					this.arg = slice.call(arguments, 1);
+					this.errorList.exec.apply(this.errorList, arguments);
+					this.anywayList.exec.apply(this.anywayList, arguments);
+				}
+			},
+			'success' : function(func) {
+				if(this.status == -1) {
+					this.successList.add(func);
+				}
+				else if(this.status === 1) {
+					func.apply(this.context, this.arg);
+				}
+				return this;
+			},
+			'error' : function(func) {
+				if(this.status == -1) {
+									this.errorList.add(func);
+				}
+				else if(this.status === 0) {
+					func.apply(this.context, this.arg);
+				}
+				return this;
+			},
+			'anyway' : function(func) {
+				if(this.status == -1) {
+					this.anywayList.add(func);
+				}
+				else if(this.status === 0) {
+					func.apply(this.context, this.arg);
+				}
+				return this;
 			}
-			else if(this.status === 1) {
-				func.apply(this.context, this.arg);
-			}
-			return this;
-		},
-
-		'error' : function(func) {
-			if(this.status == -1) {
-								this.errorList.add(func);
-			}
-			else if(this.status === 0) {
-				func.apply(this.context, this.arg);
-			}
-			return this;
-		},
-
-		'anyway' : function(func) {
-			if(this.status == -1) {
-				this.anywayList.add(func);
-			}
-			else if(this.status === 0) {
-				func.apply(this.context, this.arg);
-			}
-			return this;
-		}
-
-	};
+		};
 
 	function FuncList() {
 		this.calls = 0;
@@ -929,7 +913,12 @@
 
 	_.when = function() {
 
-		var when = new Deferred(), args = arguments, i, l = args.length, counter = 0, err = false;
+		var	when = new Deferred(),
+			args = arguments,
+			i,
+			l = args.length,
+			counter = 0,
+			err = false;
 
 		for( i = 0; i < l; i++) {
 			if(args[i] instanceof Deferred) {
@@ -2040,12 +2029,12 @@
 })();
 
 
-// ----------------------------- RedJS proto extending
+// ----------------------------- Collection manipulations
 
 	_.extend({
 
-		'each': function(f, context) {
-			this.ns.forEach(f, context);
+		'each': function(func, context) {
+			this.ns.forEach(func, context);
 			return this;
 		},
 
@@ -2073,7 +2062,9 @@
 		},
 
 		'eq': function(n) {
-			if(this.ns[n]) return _(this.ns[n]);
+			if(this.ns[n]) {
+				return _(this.ns[n]);
+			}
 			return this;
 		},
 		'first': function() {
@@ -2100,13 +2091,19 @@
 
 // compatibility
 
-	_.easyModeOn = function() {
-		if(!win._) {win._ = _; return true;}
+	_.shortModeOn = function() {
+		if(!win._) {
+			win._ = _;
+			return true;
+		}
 		return false;
 	};
 
-	_.easyModeOff = function() {
-		if(win._ == _ && win._ === redjs) {delete win._; return true;}
+	_.shortModeOff = function() {
+		if(win._ == _ && win._ === redjs) {
+			delete win._;
+			return true;
+		}
 		return false;
 	};
 
@@ -2633,19 +2630,21 @@ if(!win.JSON) {
 
 // ----------------------------- Global variables initiation
 
-	if(!win._) win._ = _;
+	if(!win._) {
+		win._ = _;
+	}
 	win.redjs = redjs;
 
 // ----------------------------- Viewport binding
 
-	function __refreshViewport() {
+	function refreshViewportSize() {
 		_.viewport = {
 			'width': htmlNode.clientWidth,
 			'height': htmlNode.clientHeight
 		};
 	}
 
-	_.addEvent(win, 'resize', __refreshViewport);
+	_.addEvent(win, 'resize', refreshViewportSize);
 
 })(window, document);
 
@@ -3525,7 +3524,7 @@ _.fc.errorsProvider.selectors = {
 
 			var	_this = _.ui.menu,
 				wrap = _(wrap),
-				submenu = '.'+_this.selectors.submenu,
+				submenu = '.' + _this.selectors.submenu,
 				hover = _this.selectors.hover,
 				delay = _this.options.delay,
 				duration = _this.options.duration;
@@ -3547,7 +3546,9 @@ _.fc.errorsProvider.selectors = {
 						if(sub.length > 0) {
 							if(current !== undefined) {
 								clearTimeout(timer);
-								if(current !== c) current.delClass(hover).find(submenu).hide();
+								if(current !== c) {
+									current.delClass(hover).find(submenu).hide();
+								}
 							}
 							sub.show(duration);
 							current = c;

@@ -9,7 +9,7 @@
 
 			var	_this = _.ui.menu,
 				wrap = _(wrap),
-				submenu = '.'+_this.selectors.submenu,
+				submenu = '.' + _this.selectors.submenu,
 				hover = _this.selectors.hover,
 				delay = _this.options.delay,
 				duration = _this.options.duration;
@@ -31,7 +31,9 @@
 						if(sub.length > 0) {
 							if(current !== undefined) {
 								clearTimeout(timer);
-								if(current !== c) current.delClass(hover).find(submenu).hide();
+								if(current !== c) {
+									current.delClass(hover).find(submenu).hide();
+								}
 							}
 							sub.show(duration);
 							current = c;

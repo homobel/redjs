@@ -16,7 +16,7 @@
 
 	var	redjs = function(name, node) {return new RedCollection(name, node);},
 		_ = redjs,
-		hash = ('redjs'+Math.random()).replace('.', ''),
+		hash = ('redjs' + Math.random()).replace('.', ''),
 		type = getType,
 		htmlNode = doc.documentElement,
 		headNode = doc.getElementsByTagName('head')[0],
@@ -27,6 +27,8 @@
 	_.hash = hash;
 	_.version = '0.8.1';
 	_.proto = {};
+
+	_.slice = slice;
 
 	function RedCollection(name, context) {
 		this.ns = getNodes(name, context);
@@ -46,7 +48,9 @@
 	_.extend = function(obj) {
 		if(typeof obj == 'object') {
 			for(var prop in obj) {
-				if(obj.hasOwnProperty(prop)) _.proto[prop] = obj[prop];
+				if(obj.hasOwnProperty(prop)) {
+					_.proto[prop] = obj[prop];
+				}
 			}
 		}
 	};
@@ -63,12 +67,12 @@
 //~ require: dom.js
 //~ require: events.js
 
-// ----------------------------- RedJS proto extending
+// ----------------------------- Collection manipulations
 
 	_.extend({
 
-		'each': function(f, context) {
-			this.ns.forEach(f, context);
+		'each': function(func, context) {
+			this.ns.forEach(func, context);
 			return this;
 		},
 
@@ -96,7 +100,9 @@
 		},
 
 		'eq': function(n) {
-			if(this.ns[n]) return _(this.ns[n]);
+			if(this.ns[n]) {
+				return _(this.ns[n]);
+			}
 			return this;
 		},
 		'first': function() {
@@ -123,13 +129,19 @@
 
 // compatibility
 
-	_.easyModeOn = function() {
-		if(!win._) {win._ = _; return true;}
+	_.shortModeOn = function() {
+		if(!win._) {
+			win._ = _;
+			return true;
+		}
 		return false;
 	};
 
-	_.easyModeOff = function() {
-		if(win._ == _ && win._ === redjs) {delete win._; return true;}
+	_.shortModeOff = function() {
+		if(win._ == _ && win._ === redjs) {
+			delete win._;
+			return true;
+		}
 		return false;
 	};
 
@@ -138,19 +150,21 @@
 
 // ----------------------------- Global variables initiation
 
-	if(!win._) win._ = _;
+	if(!win._) {
+		win._ = _;
+	}
 	win.redjs = redjs;
 
 // ----------------------------- Viewport binding
 
-	function __refreshViewport() {
+	function refreshViewportSize() {
 		_.viewport = {
 			'width': htmlNode.clientWidth,
 			'height': htmlNode.clientHeight
 		};
 	}
 
-	_.addEvent(win, 'resize', __refreshViewport);
+	_.addEvent(win, 'resize', refreshViewportSize);
 
 })(window, document);
 

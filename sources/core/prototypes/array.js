@@ -54,15 +54,4 @@
 		return index;
 	};
 
-	A.toggle = function(n) {
-		var index = this.indexOf(n);
-		if(index == -1) {
-			this.push(n);
-		}
-		else {
-			this.del(index);
-		}
-		return index;
-	};
-
 })(Array.prototype);

@@ -18,7 +18,7 @@
 		return parseInt(this, base || 10);
 	};
 
-	N.toFloat = function(base) {
+	N.toFloat = function() {
 		return parseFloat(this);
 	};
 

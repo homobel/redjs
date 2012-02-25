@@ -7,7 +7,9 @@
 
 	function isEmptyObj(obj) {
 		for(var prop in obj) {
-			if(obj.hasOwnProperty(prop)) return false;
+			if(obj.hasOwnProperty(prop)) {
+				return false;
+			}
 		}
 		return true;
 	}
@@ -16,17 +18,17 @@
 
 
 	function joinObj() {
-		var O = new Object();
+		var Obj = new Object();
 		for(var i = 0; i<arguments.length; i++) {
 			if(arguments[i]) {
 				for(var p in arguments[i]) {
 					if(arguments[i].hasOwnProperty(p)) {
-						O[p] = arguments[i][p];
+						Obj[p] = arguments[i][p];
 					}
 				}
 			}
 		}
-		return O;
+		return Obj;
 	};
 
 	_.joinObj = joinObj;
