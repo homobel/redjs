@@ -879,7 +879,7 @@
 				if(this.status == -1) {
 					this.anywayList.add(func);
 				}
-				else if(this.status === 0) {
+				else {
 					func.apply(this.context, this.params);
 				}
 				return this;
