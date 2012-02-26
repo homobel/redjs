@@ -7,45 +7,44 @@
 
 	(function() {
 
-		_.aj = {};
-
-		_.aj.obj = function() {
-			return new XMLHttpRequest();
-		};
-
-		_.aj.settings = {
-			'type': 'post',
-			'url': location.href,
-			'user': null,
-			'password': null,
-			'contentType': {
-				'xml': 'application/xml, text/xml',
-				'html': 'text/html',
-				'text': 'text/plain',
-				'json': 'application/json, text/javascript',
-				'script': 'text/javascript',
-				'urlencoded': 'application/x-www-form-urlencoded',
-				'multipart': 'multipart/form-data'
+		_.aj = {
+			'obj': function() {
+				return new XMLHttpRequest();
 			},
-			'accept': 'json',
-			'interval': 150,
-			'longReq': 60000,
-			'middleReq': 30000
+			'settings': {
+				'type': 'post',
+				'url': location.href,
+				'user': null,
+				'password': null,
+				'contentType': {
+					'xml': 'application/xml, text/xml',
+					'html': 'text/html',
+					'text': 'text/plain',
+					'json': 'application/json, text/javascript',
+					'script': 'text/javascript',
+					'urlencoded': 'application/x-www-form-urlencoded',
+					'multipart': 'multipart/form-data'
+				},
+				'accept': 'json',
+				'interval': 150,
+				'longReq': 60000,
+				'middleReq': 30000
+			},
+			'encodeData': function (obj) {
+				if(type(obj).is('object')) {
+					var data=[];
+					for(var prop in obj) {
+						data.push(prop + '=' + encodeURIComponent(obj[prop]));
+					}
+					return data.join('&');
+				}
+				return '';
+			}
 		};
 
-		function encodeData(obj) {
-			if(type(obj).is('object')) {
-				var data=[];
-				for(var prop in obj) {
-					data.push(prop+'='+encodeURIComponent(obj[prop]));
-				}
-				data = data.join('&');
-				return data;
-			}
-			return '';
-		}
+		// parameters constructor
 
-		function ajaxParams(params) {
+		function RedAjaxParams(params) {
 			var type = _.type(params);
 			if(type.is('string')) {
 				this.url = params;
@@ -57,34 +56,52 @@
 			}
 		}
 
-		// OPTIONS: url (str), type (str), before (F), interval (uint), timeout (uint), data (Obj), context(Obj), dataType/send (str), accept (str), user (str), password (str)
+		RedAjaxParams.prototype = _.aj.settings;
 
-		ajaxParams.prototype = _.aj.settings;
+		// error constructor
+
+		function RedAjaxError(type, message) {
+			this.type = type;
+			this.message = message;
+		}
+
+		RedAjaxError.prototype.toString = function() {
+			return this.message;
+		};
+
+		// main function
+		// OPTIONS: url (str), type (str), before (F), interval (uint), timeout (uint), data (Obj), context(Obj), dataType/send (str), accept (str), user (str), password (str)
 
 		_.aj.query = function(params, xmlreq) {
 
-			params = new ajaxParams(params);
+			params = new RedAjaxParams(params);
 
 			var	d = _.deferred(),
 				resptimer,
 				timeout;
 
+			// use greated object if necessary
 			xmlreq = xmlreq || _.aj.obj();
 
 			function checkStatus() {
 				if(xmlreq.readyState == 4 && xmlreq.status == 200) {
 					clearInterval(timeout);
 					clearInterval(resptimer);
-					var resp = (params.accept == 'xml')?xmlreq.responseXML:xmlreq.responseText;
-					if(params.accept == 'json') {
-						try {
-							resp = JSON.parse(resp);
-						}
-						catch(e) {
-							resp = {};
-						}
+					var resp;
+					switch(params.accept) {
+						case 'xml': resp = xmlreq.responseXML;
+						break;
+						case 'json': 
+							try {
+								resp = JSON.parse(resp);
+							}
+							catch(e) {
+								resp = {};
+							}
+						break;
+						default: resp = xmlreq.responseText;
 					}
-					d.resolve(params.context, resp);
+					d.resolve([resp], params.context);
 				}
 			}
 
@@ -92,26 +109,26 @@
 				params.before();
 			}
 
-			if(type(params.timeout).is('number')) {
+			if(typeof params.timeout == 'number') {
 				timeout = setTimeout(function() {
 					clearInterval(resptimer);
-					d.reject(params.context, 'timeout');
+					d.reject(new RedAjaxError('timeout', 'Too long ajax request!'), params.context);
 				}, params.timeout);
 			}
 
 			resptimer = setInterval(checkStatus, params.interval);
 
-			var accept = _.aj.settings.contentType[params.accept];
+			var acceptHeader = _.aj.settings.contentType[params.accept];
 
 			if(params.type == 'post') {
 				xmlreq.open('post', params.url, true);
 				xmlreq.setRequestHeader('Content-Type', _.aj.settings.contentType.urlencoded);
-				xmlreq.setRequestHeader('Accept', accept);
-				xmlreq.send(encodeData(params.data));
+				xmlreq.setRequestHeader('Accept', acceptHeader);
+				xmlreq.send(_.aj.encodeData(params.data));
 			}
 			else {
-				xmlreq.open('get', params.url+'?'+encodeData(params.data), true);
-				xmlreq.setRequestHeader('Accept', accept);
+				xmlreq.open('get', params.url+'?'+_.aj.encodeData(params.data), true);
+				xmlreq.setRequestHeader('Accept', acceptHeader);
 				xmlreq.send(null);
 			}
 
@@ -122,11 +139,11 @@
 			return d;
 		};
 
-		_.getScript = function(url, flag) {
+		_.script = function(url) {
 			var script =  _.aj.query({'url': url, 'accept': 'script'});
 			if(!flag) {
 				script.success(function(data, context) {
-					eval.call(context, data);
+					_('+script').attr('type', 'text/javascript').html(data).appendTo(headNode).remove();
 				});
 			}
 			return script;

@@ -7,22 +7,20 @@
 (function() {
 
 	var	slice = Array.prototype.slice, _FuncList = {
-			'exec' : function(obj) {
+			'exec': function(params, obj) {
 				this.calls++;
-				var args = arguments;
 				this.list.forEach(function(c) {
-					c.apply(obj, slice.call(args, 1));
+					c.apply(obj, params  || []);
 				});
-	
 				return this;
 			},
-			'add' : function(func) {
-				if(func && func.call) {
+			'add': function(func) {
+				if(func && func  instanceof Function) {
 					this.list.push(func);
 				}
 				return this;
 			},
-			'del' : function(func, flag) {
+			'del': function(func, flag) {
 				var n = this.list.indexOf(func);
 				if(flag) {
 					while(~n) {
@@ -37,48 +35,48 @@
 			}
 		},
 		_Deferred = {
-			'resolve' : function(context) {
+			'resolve': function(params, context) {
 				if(this.status == -1) {
 					this.status = 1;
 					this.context = context;
-					this.arg = slice.call(arguments, 1);
-					this.successList.exec.apply(this.successList, arguments);
-					this.anywayList.exec.apply(this.anywayList, arguments);
+					this.params = params || [];
+					this.successList.exec(this.params, this.context);
+					this.anywayList.exec(this.params, this.context);
 				}
 			},
-			'reject' : function(context) {
+			'reject': function(params, context) {
 				if(this.status == -1) {
 					this.status = 0;
 					this.context = context;
-					this.arg = slice.call(arguments, 1);
-					this.errorList.exec.apply(this.errorList, arguments);
-					this.anywayList.exec.apply(this.anywayList, arguments);
+					this.params = params || [];
+					this.errorList.exec(this.params, this.context);
+					this.anywayList.exec(this.params, this.context);
 				}
 			},
-			'success' : function(func) {
+			'success': function(func) {
 				if(this.status == -1) {
 					this.successList.add(func);
 				}
 				else if(this.status === 1) {
-					func.apply(this.context, this.arg);
+					func.apply(this.context, this.params);
 				}
 				return this;
 			},
-			'error' : function(func) {
+			'error': function(func) {
 				if(this.status == -1) {
-									this.errorList.add(func);
+					this.errorList.add(func);
 				}
 				else if(this.status === 0) {
-					func.apply(this.context, this.arg);
+					func.apply(this.context, this.params);
 				}
 				return this;
 			},
-			'anyway' : function(func) {
+			'anyway': function(func) {
 				if(this.status == -1) {
 					this.anywayList.add(func);
 				}
 				else if(this.status === 0) {
-					func.apply(this.context, this.arg);
+					func.apply(this.context, this.params);
 				}
 				return this;
 			}
