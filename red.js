@@ -280,7 +280,7 @@
 	};
 
 	N.rand = function() {
-		return (this * Math.random()).toInt();
+		return Math.round(this * Math.random());
 	};
 
 })(Number.prototype);
