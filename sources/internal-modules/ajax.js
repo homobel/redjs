@@ -87,19 +87,9 @@
 				if(xmlreq.readyState == 4 && xmlreq.status == 200) {
 					clearInterval(timeout);
 					clearInterval(resptimer);
-					var resp;
-					switch(params.accept) {
-						case 'xml': resp = xmlreq.responseXML;
-						break;
-						case 'json': 
-							try {
-								resp = JSON.parse(resp);
-							}
-							catch(e) {
-								resp = {};
-							}
-						break;
-						default: resp = xmlreq.responseText;
+					var resp = params.accept == 'xml' ? xmlreq.responseXML : xmlreq.responseText;
+					if(params.accept == 'json') {
+						resp = JSON.parse(resp);
 					}
 					d.resolve([resp], params.context);
 				}

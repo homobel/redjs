@@ -19,7 +19,7 @@
 		hash = ('redjs' + Math.random()).replace('.', ''),
 		type = getType,
 		htmlNode = doc.documentElement,
-		headNode = doc.getElementsByTagName('head')[0],
+		headNode = getNodesByTag('head')[0],
 		testNode = doc.createElement('div'),
 		testStyle = testNode.style,
 		slice = Array.prototype.slice;
