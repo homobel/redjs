@@ -20,21 +20,9 @@ _.fc.errorsProvider = function() {
 
 				if(!data.wrapped) {
 
-					var	width,
-						currentWidth = c.css('width'),
-						inPercentage = !!~currentWidth.indexOf('%');
-
-					if(inPercentage) {
-						width = currentWidth;
-						c.css('width', 'auto');
-					}
-					else {
-						width = c.width(true, true) + 'px';
-					}
-
 					var wrap = _('+span').addClass(_.fc.errorsProvider.selectors.wrap).css({
 						'float': c.css('float'),
-						'width': width
+						'width': c.width(true, true) + 'px'
 					});
 
 					c.wrap(wrap);
