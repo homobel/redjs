@@ -19,10 +19,24 @@ _.fc.errorsProvider = function() {
 					data = c.formData('errorsprovider', {});
 
 				if(!data.wrapped) {
+
+					var	width,
+						currentWidth = c.css('width'),
+						inPercentage = !!~currentWidth.indexOf('%');
+
+					if(inPercentage) {
+						width = currentWidth;
+						c.css('width', 'auto');
+					}
+					else {
+						width = c.width(true, true) + 'px';
+					}
+
 					var wrap = _('+span').addClass(_.fc.errorsProvider.selectors.wrap).css({
 						'float': c.css('float'),
-						'width': c.css('width')
+						'width': width
 					});
+
 					c.wrap(wrap);
 					data.wrapped = true;
 				}

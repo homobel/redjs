@@ -1052,42 +1052,61 @@
 		// sizeing
 
 		_.height = function(node, padding, border, margin) {
-			var height;
-			if(padding) {
-				height = node.offsetHeight;
-			}
-			else {
-				height = _.gstyle(node, 'height').toInt() || 0;
-			}
-			if(border) {
+
+			var height = padding ? node.offsetHeight : _.gstyle(node, 'height').toInt() || 0;
+
+			if(padding && !border) {
+
 				var	borderTopWidth = _.gstyle(node, 'borderTopWidth').toInt() || 0,
 					borderBottomWidth = _.gstyle(node, 'borderBottomWidth').toInt() || 0;
-				height += borderTopWidth + borderBottomWidth;
+
+				height -= borderTopWidth + borderBottomWidth;
 			}
+			else if(!padding && border) {
+
+				var	borderTopWidth = _.gstyle(node, 'borderTopWidth').toInt() || 0,
+					borderBottomWidth = _.gstyle(node, 'borderBottomWidth').toInt() || 0;
+
+				height += borderTopWidth + borderBottomWidth;
+
+			}
+
+
 			if(margin) {
+
 				var	marginTop = _.gstyle(node, 'marginTop').toInt() || 0,
 					marginBottom = _.gstyle(node, 'marginBottom').toInt() || 0;
+
 				height += marginTop + marginBottom;
 			}
 			return height;
 		};
 
 		_.width = function(node, padding, border, margin) {
-			var width;
-			if(padding) {
-				width = node.offsetWidth;
-			}
-			else {
-				width = _.gstyle(node, 'width').toInt() || 0;
-			}
-			if(border) {
+
+			var width = padding ? node.offsetWidth : _.gstyle(node, 'width').toInt() || 0;
+
+			if(padding && !border) {
+
 				var	borderLeftWidth = _.gstyle(node, 'borderLeftWidth').toInt() || 0,
 					borderRightWidth = _.gstyle(node, 'borderRightWidth').toInt() || 0;
+
+				width -= borderLeftWidth + borderRightWidth;
+
+			}
+			else if(!padding && border) {
+
+				var	borderLeftWidth = _.gstyle(node, 'borderLeftWidth').toInt() || 0,
+					borderRightWidth = _.gstyle(node, 'borderRightWidth').toInt() || 0;
+
 				width += borderLeftWidth + borderRightWidth;
 			}
+
 			if(margin) {
+
 				var	marginLeft = _.gstyle(node, 'marginLeft').toInt() || 0,
 					marginRight = _.gstyle(node, 'marginRight').toInt() || 0;
+
 				width += marginLeft + marginRight;
 			}
 			return width;
@@ -2887,10 +2906,24 @@ _.fc.errorsProvider = function() {
 					data = c.formData('errorsprovider', {});
 
 				if(!data.wrapped) {
+
+					var	width,
+						currentWidth = c.css('width'),
+						inPercentage = !!~currentWidth.indexOf('%');
+
+					if(inPercentage) {
+						width = currentWidth;
+						c.css('width', 'auto');
+					}
+					else {
+						width = c.width(true, true) + 'px';
+					}
+
 					var wrap = _('+span').addClass(_.fc.errorsProvider.selectors.wrap).css({
 						'float': c.css('float'),
-						'width': c.css('width')
+						'width': width
 					});
+
 					c.wrap(wrap);
 					data.wrapped = true;
 				}
